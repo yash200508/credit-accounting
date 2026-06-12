@@ -4,6 +4,7 @@ import com.gasstation.app.dao.CustomerDao;
 import com.gasstation.app.dao.TransactionDao;
 import com.gasstation.app.model.Customer;
 import com.gasstation.app.model.Transaction;
+import com.gasstation.app.util.MoneyUtil;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -501,23 +502,15 @@ public class ImportExcelScreen extends BorderPane {
         String t = safe(text);
         if (t.isEmpty()) return 0;
 
-        t = t.replace(",", "").replace("₹", "").replace("Rs", "").replace("rs", "").trim();
+        t = t.replace("Rs.", "")
+                .replace("rs.", "")
+                .replace("Rs", "")
+                .replace("rs", "")
+                .trim();
 
         try {
-            if (t.contains(".")) {
-                String[] parts = t.split("\\.");
-                String ru = parts[0].replaceAll("[^0-9]", "");
-                String pa = parts.length > 1 ? parts[1].replaceAll("[^0-9]", "") : "0";
-                if (pa.length() == 1) pa = pa + "0";
-                if (pa.length() > 2) pa = pa.substring(0, 2);
-                if (pa.isEmpty()) pa = "00";
-                return Long.parseLong(ru) * 100L + Long.parseLong(pa);
-            } else {
-                String ru = t.replaceAll("[^0-9]", "");
-                if (ru.isEmpty()) return 0;
-                return Long.parseLong(ru) * 100L;
-            }
-        } catch (Exception e) {
+            return MoneyUtil.parseMoneyToPaise(t);
+        } catch (IllegalArgumentException | ArithmeticException e) {
             return 0;
         }
     }
