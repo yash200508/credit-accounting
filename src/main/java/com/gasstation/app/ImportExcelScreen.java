@@ -165,8 +165,7 @@ public class ImportExcelScreen extends BorderPane {
                 String amountPaiseStr = safe(r.getOrDefault("AmountPaise", "")); // paise
 
                 // required fields
-                if (phone.isEmpty() || dateStr.isEmpty() || typeStr.isEmpty()
-                        || (amountStr.isEmpty() && amountPaiseStr.isEmpty())) {
+                if (!TransactionImportValidator.hasRequiredFields(phone, dateStr, typeStr, amountStr, amountPaiseStr)) {
 
                     skipped++;
                     log("SKIP row " + (i + 2) + ": missing required fields");
@@ -461,14 +460,7 @@ public class ImportExcelScreen extends BorderPane {
     }
 
     private String normalizeType(String type) {
-        String t = safe(type).toUpperCase();
-
-        if (t.equals("DEBIT") || t.equals("CREDIT")) return t;
-
-        if (t.contains("CREDIT TAKEN") || t.contains("TAKEN") || t.contains("FUEL")) return "DEBIT";
-        if (t.contains("PAYMENT") || t.contains("PAID") || t.contains("RECEIVED")) return "CREDIT";
-
-        return null;
+        return TransactionImportValidator.normalizeType(type);
     }
 
     private LocalDate parseDate(String s) {
