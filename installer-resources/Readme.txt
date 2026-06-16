@@ -1,1 +1,39 @@
-Gas Station Credit Accounting Software=====================================Version: 0.0.1Vendor: GasStation SoftwareDescription-----------A desktop application for managing customer credit accounts,transactions, overdue balances, reminders, and reports.Features--------• Customer management• Credit ledger tracking• Transaction import/export (Excel)• Overdue balance monitoring• PDF and Excel reports• Local SQLite database (offline)• Secure, fast desktop performanceSystem Requirements-------------------• Windows 10 or later (64-bit)• No internet required• No Java installation requiredData Location-------------Application data is stored locally in:%USERPROFILE%\GasStationAccounting\dataSupport-------For support or feature requests, contact:GasStation Software Team© 2026 GasStation Software. All rights reserved.
+Gas Station Credit Accounting Software
+=====================================
+
+Version: 0.0.1
+Vendor: GasStation Software
+
+Description
+-----------
+A desktop application for managing customer credit accounts,
+transactions, overdue balances, reminders, and reports.
+
+Features
+--------
+• Customer management
+• Credit ledger tracking
+• Transaction import/export (Excel)
+• Overdue balance monitoring
+• PDF and Excel reports
+• Local SQLite database (offline)
+• Secure, fast desktop performance
+
+System Requirements
+-------------------
+• Windows 10 or later (64-bit)
+• No internet required
+• No Java installation required
+
+Data Location
+-------------
+Application data is stored locally in:
+%USERPROFILE%\.credit-accounting\credit.db
+
+Support
+-------
+For support or feature requests, contact:
+GasStation Software Team
+
+© 2026 GasStation Software. All rights reserved.
+=====================================Version: 0.0.1Vendor: GasStation SoftwareDescription-----------A desktop application for managing customer credit accounts,transactions, overdue balances, reminders, and reports.Features--------• Customer management• Credit ledger tracking• Transaction import/export (Excel)• Overdue balance monitoring• PDF and Excel reports• Local SQLite database (offline)• Secure, fast desktop performanceSystem Requirements-------------------• Windows 10 or later (64-bit)• No internet required• No Java installation requiredData Location-------------Application data is stored locally in:%USERPROFILE%\GasStationAccounting\dataSupport-------For support or feature requests, contact:GasStation Software Team© 2026 GasStation Software. All rights reserved.
