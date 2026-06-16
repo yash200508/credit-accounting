@@ -6,6 +6,7 @@ import com.gasstation.app.model.Customer;
 import com.gasstation.app.model.CustomerKpi;
 import com.gasstation.app.service.LedgerExportService;
 import com.gasstation.app.service.CustomerKpiService;
+import com.gasstation.app.service.ReportSummaryService;
 import com.gasstation.app.util.CsvUtil;
 import com.gasstation.app.util.MoneyUtil;
 
@@ -32,6 +33,7 @@ public class ReportsScreen extends BorderPane {
     private final CustomerDao customerDao = new CustomerDao();
     private final TransactionDao txnDao = new TransactionDao();
     private final CustomerKpiService kpiService = new CustomerKpiService();
+    private final ReportSummaryService reportSummaryService = new ReportSummaryService(customerDao, txnDao);
 
     private final DatePicker from = new DatePicker(LocalDate.now().withDayOfMonth(1));
     private final DatePicker to = new DatePicker(LocalDate.now());
@@ -137,11 +139,10 @@ public class ReportsScreen extends BorderPane {
         try {
             String f = from.getValue().toString();
             String t = to.getValue().toString();
-            long credits = txnDao.sumAllByTypeBetween("CREDIT", f, t);
-            long debits = txnDao.sumAllByTypeBetween("DEBIT", f, t);
-            collectionsLbl.setText(MoneyUtil.formatMoney(credits));
-            creditGivenLbl.setText(MoneyUtil.formatMoney(debits));
-            netLbl.setText(MoneyUtil.formatMoney(credits - debits));
+            ReportSummaryService.PeriodSummary summary = reportSummaryService.buildPeriodSummary(from.getValue(), to.getValue());
+            collectionsLbl.setText(MoneyUtil.formatMoney(summary.totalCreditsPaise()));
+            creditGivenLbl.setText(MoneyUtil.formatMoney(summary.totalDebitsPaise()));
+            netLbl.setText(MoneyUtil.formatMoney(summary.netPaise()));
             statusLbl.setText("Loaded period: " + f + " to " + t);
         } catch (SQLException e) {
             statusLbl.setText("Error: " + e.getMessage());
@@ -315,30 +316,22 @@ public class ReportsScreen extends BorderPane {
         try {
             String f = from.getValue().toString();
             String t = to.getValue().toString();
-            List<Customer> customers = customerDao.listAll();
+            ReportSummaryService.PeriodSummary summary = reportSummaryService.buildPeriodSummary(from.getValue(), to.getValue());
             List<List<String>> rows = new ArrayList<>();
 
-            long totalDebits = 0;
-            long totalCredits = 0;
-
-            for (Customer c : customers) {
-                long deb = txnDao.sumByTypeBetween(c.getCustomerId(), "DEBIT", f, t);
-                long cre = txnDao.sumByTypeBetween(c.getCustomerId(), "CREDIT", f, t);
-                if (deb == 0 && cre == 0) continue;
-                totalDebits += deb;
-                totalCredits += cre;
+            for (ReportSummaryService.PeriodCustomerSummary row : summary.rows()) {
                 rows.add(List.of(
-                        Long.toString(c.getCustomerId()),
-                        c.getName(),
-                        c.getPhone(),
-                        MoneyUtil.formatMoney(deb),
-                        MoneyUtil.formatMoney(cre),
-                        MoneyUtil.formatMoney(cre - deb)
+                        Long.toString(row.customerId()),
+                        row.name(),
+                        row.phone(),
+                        MoneyUtil.formatMoney(row.debitsPaise()),
+                        MoneyUtil.formatMoney(row.creditsPaise()),
+                        MoneyUtil.formatMoney(row.netPaise())
                 ));
             }
 
             // Totals row
-            rows.add(List.of("", "TOTAL", "", MoneyUtil.formatMoney(totalDebits), MoneyUtil.formatMoney(totalCredits), MoneyUtil.formatMoney(totalCredits - totalDebits)));
+            rows.add(List.of("", "TOTAL", "", MoneyUtil.formatMoney(summary.totalDebitsPaise()), MoneyUtil.formatMoney(summary.totalCreditsPaise()), MoneyUtil.formatMoney(summary.netPaise())));
 
             CsvUtil.write(file.toPath(),
                     List.of("customer_id", "name", "phone", "debits", "credits", "net"),

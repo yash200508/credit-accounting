@@ -2,6 +2,7 @@ package com.gasstation.app;
 
 import com.gasstation.app.dao.CustomerDao;
 import com.gasstation.app.model.Customer;
+import com.gasstation.app.service.CustomerImportValidator;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -140,49 +141,42 @@ public class CustomerImportScreen extends BorderPane {
 
             Set<String> existingPhones = new HashSet<>();
             try {
-                customerDao.listAll().forEach(c -> existingPhones.add(normalizePhone(c.getPhone())));
+                customerDao.listAll().forEach(c -> existingPhones.add(CustomerImportValidator.normalizePhone(c.getPhone())));
             } catch (Exception ignore) {}
 
             for (int i = 0; i < allRows.size(); i++) {
                 Map<String, String> r = allRows.get(i);
 
-                String name = safe(r.get("Name")).trim();
-                String phone = normalizePhone(r.get("Phone"));
+                CustomerImportValidator.CustomerImportRow validated = CustomerImportValidator.validate(
+                        r.get("Name"),
+                        r.get("Phone"),
+                        r.get("Active"),
+                        r.get("CreditLimit"),
+                        r.get("CreditLimitPaise"),
+                        r.get("DueDays"),
+                        r.get("GraceDays"),
+                        existingPhones
+                );
 
-                if (name.isEmpty() || phone.isEmpty()) {
+                if (!validated.valid()) {
                     skipped++;
-                    log("SKIP row " + (i + 2) + ": missing required fields (Name/Phone)");
-                    failedRows.add(withFailReason(r, "Missing required fields (Name/Phone)"));
+                    log("SKIP row " + (i + 2) + ": " + validated.failureReason());
+                    failedRows.add(withFailReason(r, validated.failureReason()));
                     continue;
                 }
 
-                if (existingPhones.contains(phone)) {
-                    skipped++;
-                    log("SKIP row " + (i + 2) + ": duplicate phone: " + phone);
-                    failedRows.add(withFailReason(r, "Duplicate phone: " + phone));
-                    continue;
-                }
+                String phone = validated.phone();
 
                 Customer c = new Customer();
-                c.setName(name);
+                c.setName(validated.name());
                 c.setPhone(phone);
                 c.setAddress(safe(r.get("Address")).trim());
                 c.setNotes(safe(r.get("Notes")).trim());
 
-                c.setIsActive(parseActive(r.get("Active")));
-                c.setDueDays(parseIntOrDefault(r.get("DueDays"), 30));
-                c.setGraceDays(Math.max(0, parseIntOrDefault(r.get("GraceDays"), 0)));
-
-                long creditLimitPaise = 0;
-                String clPaise = safe(r.get("CreditLimitPaise"));
-                String cl = safe(r.get("CreditLimit"));
-                if (!clPaise.isEmpty()) {
-                    creditLimitPaise = parseLongOrZero(clPaise);
-                } else if (!cl.isEmpty()) {
-                    creditLimitPaise = rupeesToPaise(cl);
-                }
-                if (creditLimitPaise < 0) creditLimitPaise = 0;
-                c.setCreditLimitPaise(creditLimitPaise);
+                c.setIsActive(validated.isActive());
+                c.setDueDays(validated.dueDays());
+                c.setGraceDays(validated.graceDays());
+                c.setCreditLimitPaise(validated.creditLimitPaise());
 
                 try {
                     customerDao.insert(c);
@@ -362,52 +356,6 @@ public class CustomerImportScreen extends BorderPane {
             }
         }
         return "";
-    }
-
-    private String normalizePhone(String s) {
-        if (s == null) return "";
-        String digits = s.replaceAll("\\D", "");
-        if (digits.length() >= 10) return digits.substring(digits.length() - 10);
-        return "";
-    }
-
-    private int parseActive(String s) {
-        if (s == null) return 1;
-        String t = s.trim().toLowerCase();
-        if (t.isEmpty()) return 1;
-        if (t.equals("0") || t.equals("false") || t.equals("no") || t.equals("inactive")) return 0;
-        return 1;
-    }
-
-    private int parseIntOrDefault(String s, int fallback) {
-        if (s == null || s.trim().isEmpty()) return fallback;
-        try { return Integer.parseInt(s.trim()); }
-        catch (Exception e) { return fallback; }
-    }
-
-    private long parseLongOrZero(String s) {
-        if (s == null || s.trim().isEmpty()) return 0;
-        try { return Long.parseLong(s.trim()); }
-        catch (Exception e) { return 0; }
-    }
-
-    private long rupeesToPaise(String s) {
-        if (s == null) return 0;
-        String t = s.trim();
-        if (t.isEmpty()) return 0;
-        t = t.replace("₹", "").replace(",", "").trim();
-        try {
-            if (!t.contains(".")) return Long.parseLong(t) * 100L;
-            String[] parts = t.split("\\.");
-            long rupees = Long.parseLong(parts[0].isEmpty() ? "0" : parts[0]);
-            String p = (parts.length > 1) ? parts[1] : "0";
-            if (p.length() == 1) p = p + "0";
-            if (p.length() > 2) p = p.substring(0, 2);
-            long paise = Long.parseLong(p);
-            return rupees * 100L + paise;
-        } catch (Exception e) {
-            return 0;
-        }
     }
 
     private String safe(String s) {

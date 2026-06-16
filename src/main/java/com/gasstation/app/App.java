@@ -6,22 +6,15 @@ import javafx.stage.Stage;
 
 public class App extends Application {
 
-	@Override
-	public void start(Stage stage) {
-	    System.out.println("START() ENTERED");
-	    stage.setTitle("Credit Accounting");
+    @Override
+    public void start(Stage stage) {
+        stage.setTitle("Credit Accounting");
 
-	    AppNavigator nav = new AppNavigator(stage);
-	    System.out.println("NAV CREATED");
+        AppNavigator nav = new AppNavigator(stage);
+        nav.start();
 
-	    nav.start();
-	    System.out.println("NAV STARTED");
-
-	    stage.show();
-	    System.out.println("STAGE SHOWN");
-
-
-	}
+        stage.show();
+    }
 
 
 

@@ -4,6 +4,7 @@ import com.gasstation.app.dao.CustomerDao;
 import com.gasstation.app.dao.TransactionDao;
 import com.gasstation.app.model.Customer;
 import com.gasstation.app.model.Transaction;
+import com.gasstation.app.service.TransactionImportValidator;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -164,8 +165,7 @@ public class ImportExcelScreen extends BorderPane {
                 String amountPaiseStr = safe(r.getOrDefault("AmountPaise", "")); // paise
 
                 // required fields
-                if (phone.isEmpty() || dateStr.isEmpty() || typeStr.isEmpty()
-                        || (amountStr.isEmpty() && amountPaiseStr.isEmpty())) {
+                if (!TransactionImportValidator.hasRequiredFields(phone, dateStr, typeStr, amountStr, amountPaiseStr)) {
 
                     skipped++;
                     log("SKIP row " + (i + 2) + ": missing required fields");
@@ -460,14 +460,7 @@ public class ImportExcelScreen extends BorderPane {
     }
 
     private String normalizeType(String type) {
-        String t = safe(type).toUpperCase();
-
-        if (t.equals("DEBIT") || t.equals("CREDIT")) return t;
-
-        if (t.contains("CREDIT TAKEN") || t.contains("TAKEN") || t.contains("FUEL")) return "DEBIT";
-        if (t.contains("PAYMENT") || t.contains("PAID") || t.contains("RECEIVED")) return "CREDIT";
-
-        return null;
+        return TransactionImportValidator.normalizeType(type);
     }
 
     private LocalDate parseDate(String s) {
@@ -498,28 +491,7 @@ public class ImportExcelScreen extends BorderPane {
     }
 
     private long parseRupeesToPaise(String text) {
-        String t = safe(text);
-        if (t.isEmpty()) return 0;
-
-        t = t.replace(",", "").replace("₹", "").replace("Rs", "").replace("rs", "").trim();
-
-        try {
-            if (t.contains(".")) {
-                String[] parts = t.split("\\.");
-                String ru = parts[0].replaceAll("[^0-9]", "");
-                String pa = parts.length > 1 ? parts[1].replaceAll("[^0-9]", "") : "0";
-                if (pa.length() == 1) pa = pa + "0";
-                if (pa.length() > 2) pa = pa.substring(0, 2);
-                if (pa.isEmpty()) pa = "00";
-                return Long.parseLong(ru) * 100L + Long.parseLong(pa);
-            } else {
-                String ru = t.replaceAll("[^0-9]", "");
-                if (ru.isEmpty()) return 0;
-                return Long.parseLong(ru) * 100L;
-            }
-        } catch (Exception e) {
-            return 0;
-        }
+        return TransactionImportValidator.parseRupeesToPaise(text);
     }
 
     private String normalizePhoneForLookup(String s) {

@@ -16,6 +16,7 @@
 
     <!-- JavaFX version -->
     <javafx.version>17.0.17</javafx.version>
+    <junit.jupiter.version>5.10.3</junit.jupiter.version>
 
     <!-- Your JavaFX main class -->
     <mainClass>com.gasstation.app.App</mainClass>
@@ -66,6 +67,14 @@
       <artifactId>pdfbox</artifactId>
       <version>2.0.31</version>
     </dependency>
+
+    <!-- Tests -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -92,6 +101,16 @@
               <mainClass>${mainClass}</mainClass>
             </manifest>
           </archive>
+        </configuration>
+      </plugin>
+
+      <!-- Run JUnit 5 tests -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <useModulePath>false</useModulePath>
         </configuration>
       </plugin>
 

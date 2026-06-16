@@ -10,6 +10,13 @@ import java.sql.Statement;
 
 public final class Db {
 
+    /**
+     * Test-only/system integration override for the SQLite database file.
+     * Normal desktop usage does not set this property and continues to use
+     * ${user.home}/.credit-accounting/credit.db.
+     */
+    public static final String DB_PATH_PROPERTY = "credit.accounting.db.path";
+
     private static final String APP_DIR = ".credit-accounting";
     private static final String DB_FILE = "credit.db";
 
@@ -202,10 +209,20 @@ public final class Db {
     }
 
     private static Path getDbDir() {
+        String override = System.getProperty(DB_PATH_PROPERTY);
+        if (override != null && !override.isBlank()) {
+            Path overridePath = Path.of(override);
+            Path parent = overridePath.toAbsolutePath().getParent();
+            return parent == null ? Path.of(".").toAbsolutePath() : parent;
+        }
         return Path.of(System.getProperty("user.home"), APP_DIR);
     }
 
     private static Path getDbPath() {
+        String override = System.getProperty(DB_PATH_PROPERTY);
+        if (override != null && !override.isBlank()) {
+            return Path.of(override);
+        }
         return getDbDir().resolve(DB_FILE);
     }
 }

@@ -1,0 +1,33 @@
+<!--
+  Optional Maven settings template for environments that must use an internal
+  Maven repository manager such as Nexus, Artifactory, or a corporate cache.
+
+  How to use:
+    1. Copy this file outside the repo, for example to ~/.m2/settings.xml.
+    2. Replace the example URLs with your approved Maven mirror URLs.
+    3. If credentials are required, provide them through your local secure
+       secret manager or environment-specific settings file. Do not commit
+       credentials, tokens, passwords, or private mirror URLs to this repo.
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>company-maven-cache</id>
+      <name>Company Maven Cache</name>
+      <url>https://maven-cache.example.com/repository/maven-public/</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
+
+  <!--
+  <servers>
+    <server>
+      <id>company-maven-cache</id>
+      <username>${env.MAVEN_REPO_USERNAME}</username>
+      <password>${env.MAVEN_REPO_PASSWORD}</password>
+    </server>
+  </servers>
+  -->
+</settings>
