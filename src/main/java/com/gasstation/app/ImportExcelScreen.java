@@ -4,7 +4,7 @@ import com.gasstation.app.dao.CustomerDao;
 import com.gasstation.app.dao.TransactionDao;
 import com.gasstation.app.model.Customer;
 import com.gasstation.app.model.Transaction;
-import com.gasstation.app.service.TransactionImportValidator;
+import com.gasstation.app.util.MoneyUtil;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -491,7 +491,20 @@ public class ImportExcelScreen extends BorderPane {
     }
 
     private long parseRupeesToPaise(String text) {
-        return TransactionImportValidator.parseRupeesToPaise(text);
+        String t = safe(text);
+        if (t.isEmpty()) return 0;
+
+        t = t.replace("Rs.", "")
+                .replace("rs.", "")
+                .replace("Rs", "")
+                .replace("rs", "")
+                .trim();
+
+        try {
+            return MoneyUtil.parseMoneyToPaise(t);
+        } catch (IllegalArgumentException | ArithmeticException e) {
+            return 0;
+        }
     }
 
     private String normalizePhoneForLookup(String s) {

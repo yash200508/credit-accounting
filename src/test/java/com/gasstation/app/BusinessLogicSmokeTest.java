@@ -129,10 +129,8 @@ public final class BusinessLogicSmokeTest {
     }
 
     private static void importAmountValidationRejectsOverPreciseDecimals() {
-        String screenSource = readSource("src/main/java/com/gasstation/app/ImportExcelScreen.java");
-        String validatorSource = readSource("src/main/java/com/gasstation/app/service/TransactionImportValidator.java");
-        assertTrue("transaction import delegates amount parsing to a non-UI validator", screenSource.contains("TransactionImportValidator.parseRupeesToPaise(text)"));
-        assertTrue("transaction import validator delegates rupee parsing to MoneyUtil", validatorSource.contains("MoneyUtil.parseMoneyToPaise(t)"));
+        String source = readSource("src/main/java/com/gasstation/app/ImportExcelScreen.java");
+        assertTrue("transaction import delegates rupee parsing to MoneyUtil", source.contains("MoneyUtil.parseMoneyToPaise(t)"));
         assertEquals("MoneyUtil rejects over-precise import amounts", 0L, importStyleParseRupeesToPaise("12.345"));
         assertEquals("MoneyUtil accepts a valid rupee import amount", 1234L, importStyleParseRupeesToPaise("Rs. 12.34"));
     }

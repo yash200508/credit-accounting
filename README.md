@@ -27,8 +27,6 @@ mvn test
 mvn clean package
 ```
 
-`mvn test` runs the JUnit Jupiter test suite under `src/test/java`. DAO/database tests set the `credit.accounting.db.path` system property to a temporary JUnit directory so they do not touch the normal desktop database at `${user.home}/.credit-accounting/credit.db`.
-
 If Maven Central is blocked by the Codex/cloud environment proxy, dependency and plugin resolution can fail before compilation starts. In that case, retry in an environment with Maven Central access or a configured internal Maven mirror. See `docs/maven-build-troubleshooting.md` for safe mirror/cache guidance that does not commit secrets.
 
 ## Dependency-free smoke test
@@ -41,7 +39,7 @@ javac -cp src/main/java -d target/smoke-tests src/test/java/com/gasstation/app/B
 java -cp target/smoke-tests:src/main/java com.gasstation.app.BusinessLogicSmokeTest
 ```
 
-This checks money parsing/formatting, interest calculation, KPI overdue/FIFO behavior, reminder placeholder rendering, transaction void-status behavior, DAO void-filter source checks, and import amount validation behavior. The smoke test is kept as a fallback for restricted environments; the primary automated suite is now JUnit-based.
+This checks money parsing/formatting, interest calculation, KPI overdue/FIFO behavior, reminder placeholder rendering, transaction void-status behavior, DAO void-filter source checks, and import amount validation behavior.
 
 ## Packaging
 
