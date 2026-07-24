@@ -473,10 +473,97 @@ begin
 end;
 $$;
 
+create function app_private.assert_interest_accrual_ledger_link()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  target_transaction public.ledger_transactions%rowtype;
+  target_accrual public.interest_accruals%rowtype;
+begin
+  if tg_table_name = 'ledger_transactions' then
+    target_transaction := new;
+
+    if target_transaction.transaction_type <> 'INTEREST_CHARGE'
+       or target_transaction.created_by is not null
+    then
+      return null;
+    end if;
+
+    select accrual.*
+    into target_accrual
+    from public.interest_accruals as accrual
+    where accrual.ledger_transaction_id = target_transaction.id;
+
+    if not found then
+      raise exception 'IAC_LEDGER_DETAIL_REQUIRED'
+        using errcode = '23514';
+    end if;
+  else
+    target_accrual := new;
+
+    if target_accrual.posted_interest_paise = 0 then
+      return null;
+    end if;
+
+    select transaction.*
+    into target_transaction
+    from public.ledger_transactions as transaction
+    where transaction.id = target_accrual.ledger_transaction_id;
+
+    if not found then
+      raise exception 'IAC_LEDGER_DETAIL_REQUIRED'
+        using errcode = '23514';
+    end if;
+  end if;
+
+  if target_transaction.organization_id
+       is distinct from target_accrual.organization_id
+     or target_transaction.station_id
+       is distinct from target_accrual.station_id
+     or target_transaction.credit_account_id
+       is distinct from target_accrual.credit_account_id
+     or target_transaction.customer_id
+       is distinct from target_accrual.customer_id
+     or target_transaction.transaction_type
+       is distinct from 'INTEREST_CHARGE'
+     or target_transaction.status is distinct from 'POSTED'
+     or target_transaction.amount_paise
+       is distinct from target_accrual.posted_interest_paise
+     or target_transaction.currency_code
+       is distinct from target_accrual.currency_code
+     or target_transaction.business_date
+       is distinct from target_accrual.business_date
+     or target_transaction.created_by is not null
+  then
+    raise exception 'IAC_LEDGER_DETAIL_MISMATCH'
+      using errcode = '23514';
+  end if;
+
+  return null;
+end;
+$$;
+
+create constraint trigger system_interest_requires_accrual_detail
+after insert on public.ledger_transactions
+deferrable initially deferred
+for each row execute function
+  app_private.assert_interest_accrual_ledger_link();
+
+create constraint trigger posted_accrual_requires_matching_interest_ledger
+after insert on public.interest_accruals
+deferrable initially deferred
+for each row execute function
+  app_private.assert_interest_accrual_ledger_link();
+
 comment on function
   app_private.post_interest_for_account_date(uuid, uuid, date) is
   'Trusted, account-locked, idempotent daily interest posting. Uses exact NUMERIC carry and creates ledger/audit rows only for positive whole-paise postings.';
 
 revoke all on function
   app_private.post_interest_for_account_date(uuid, uuid, date)
+  from public, anon, authenticated, service_role;
+revoke all on function app_private.assert_interest_accrual_ledger_link()
   from public, anon, authenticated, service_role;

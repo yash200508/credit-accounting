@@ -23,17 +23,17 @@ data was used.
 | Check | Result |
 |---|---|
 | Clean migration reset | Pass |
-| pgTAP | 439/439 pass (288 existing + 151 Phase 2C) |
-| Phase 2A concurrency | Pending final consolidated rerun |
-| Phase 2B concurrency | Pending final consolidated rerun |
+| pgTAP | 447/447 pass (288 existing + 159 Phase 2C) |
+| Phase 2A concurrency | Pass |
+| Phase 2B concurrency | Pass: all three scenarios |
 | Phase 2C concurrency | Pass: duplicate, repayment, and fuel races |
 | Scheduler registration | Pass; registration/privileges only, not elapsed-time execution |
-| Database lint | Pending final consolidated rerun |
-| Repository hygiene | Pending final consolidated rerun |
-| Java/Maven | Baseline 37/37; pending final consolidated rerun |
+| Database lint | Pass: no `public` or `app_private` errors |
+| Repository hygiene | Pass: 134 tracked files |
+| Java/Maven | Pass: 37/37 |
 
-The final consolidated validation and CI links are recorded before the draft
-pull request is handed off.
+The final consolidated local run used Supabase CLI 2.109.1 and Java 17.0.17.
+CI status and links are recorded on the draft pull request.
 
 ## Security review boundary
 
@@ -43,6 +43,19 @@ accrual date, actor, tenant, or global trigger authority. Functions use empty
 search paths and fully qualified objects. New evidence is forced-RLS and
 append-only. `service_role` receives no raw financial bypass in the repository's
 hardened model.
+
+The pre-landing review found and fixed two accounting edge cases before the
+final run:
+
+- posting now derives the incremental amount from the rounded cumulative exact
+  target, so a prior `-0.5` residual can never create a negative reversal on a
+  later zero-raw day;
+- a deferred invariant now requires every system-authored interest ledger
+  charge to match immutable accrual detail by tenant, station, account,
+  customer, date, currency, and amount.
+
+After those fixes, the security and pre-landing reviews reported no remaining
+actionable findings.
 
 This is an internal engineering review, not an independent professional
 financial, tax, legal, or security audit.

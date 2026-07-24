@@ -1102,6 +1102,149 @@ select is(
   'rerun does not duplicate catch-up components'
 );
 
+select pg_temp.iac_create_account(
+  'c2b00000-0000-0000-0000-000000000116',
+  'c2c00000-0000-0000-0000-000000000116',
+  'a1000000-0000-0000-0000-000000000001',
+  '+15552000116'
+);
+select pg_temp.iac_create_account(
+  'c2b00000-0000-0000-0000-000000000117',
+  'c2c00000-0000-0000-0000-000000000117',
+  'a1000000-0000-0000-0000-000000000001',
+  '+15552000117'
+);
+insert into public.interest_policies (
+  id,
+  organization_id,
+  customer_id,
+  annual_rate,
+  grace_days,
+  grace_policy,
+  effective_from,
+  is_active,
+  interest_enabled,
+  day_count_basis,
+  created_by,
+  updated_by
+)
+values
+  (
+    'c2d00000-0000-0000-0000-000000000116',
+    'a0000000-0000-0000-0000-000000000001',
+    'c2b00000-0000-0000-0000-000000000116',
+    0.18000000,
+    3,
+    'RETROACTIVE_AFTER_GRACE',
+    '2024-01-01',
+    true,
+    true,
+    365,
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001'
+  ),
+  (
+    'c2d00000-0000-0000-0000-000000000117',
+    'a0000000-0000-0000-0000-000000000001',
+    'c2b00000-0000-0000-0000-000000000117',
+    0.18000000,
+    3,
+    'RETROACTIVE_AFTER_GRACE',
+    '2024-01-01',
+    true,
+    true,
+    365,
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001'
+  );
+
+select pg_temp.iac_post_fuel(
+  'c2e00000-0000-0000-0000-000000000116',
+  'c2c00000-0000-0000-0000-000000000116',
+  '2026-02-10',
+  36500
+);
+select pg_temp.iac_post_repayment(
+  'c2f00000-0000-0000-0000-000000000116',
+  'c2c00000-0000-0000-0000-000000000116',
+  '2026-02-12',
+  18250,
+  0
+);
+select pg_temp.iac_run_days(
+  (select state_uuid from iac_test_state where state_key = 'north_run'),
+  'c2c00000-0000-0000-0000-000000000116',
+  '2026-02-10',
+  '2026-02-13'
+);
+select is(
+  (
+    select raw_interest_paise
+    from public.interest_accruals
+    where credit_account_id =
+      'c2c00000-0000-0000-0000-000000000116'
+      and business_date = '2026-02-13'
+  ),
+  54.000000000000000000::numeric,
+  'retroactive catch-up uses each grace day historical closing balance'
+);
+select results_eq(
+  $$select interest_business_date, raw_interest_paise
+    from public.interest_accrual_components
+    where credit_account_id =
+      'c2c00000-0000-0000-0000-000000000116'
+      and accrual_business_date = '2026-02-13'
+    order by interest_business_date$$,
+  $$values
+      ('2026-02-10'::date, 18.000000000000000000::numeric),
+      ('2026-02-11'::date, 18.000000000000000000::numeric),
+      ('2026-02-12'::date, 9.000000000000000000::numeric),
+      ('2026-02-13'::date, 9.000000000000000000::numeric)$$,
+  'partial grace-period repayment reduces catch-up from its closing date'
+);
+
+select pg_temp.iac_post_fuel(
+  'c2e00000-0000-0000-0000-000000000117',
+  'c2c00000-0000-0000-0000-000000000117',
+  '2026-02-20',
+  36500
+);
+select pg_temp.iac_post_repayment(
+  'c2f00000-0000-0000-0000-000000000117',
+  'c2c00000-0000-0000-0000-000000000117',
+  '2026-02-22',
+  36500,
+  0
+);
+select pg_temp.iac_run_days(
+  (select state_uuid from iac_test_state where state_key = 'north_run'),
+  'c2c00000-0000-0000-0000-000000000117',
+  '2026-02-20',
+  '2026-02-23'
+);
+select is(
+  (
+    select raw_interest_paise
+    from public.interest_accruals
+    where credit_account_id =
+      'c2c00000-0000-0000-0000-000000000117'
+      and business_date = '2026-02-23'
+  ),
+  0.000000000000000000::numeric,
+  'a lot fully repaid before retroactive threshold has no catch-up'
+);
+select is(
+  (
+    select component_count
+    from public.interest_accruals
+    where credit_account_id =
+      'c2c00000-0000-0000-0000-000000000117'
+      and business_date = '2026-02-23'
+  ),
+  0,
+  'fully repaid retroactive lot creates no threshold components'
+);
+
 -- FIFO principal lots and same-day closing principal.
 select pg_temp.iac_post_fuel(
   'c2e00000-0000-0000-0000-000000000103',
@@ -1848,6 +1991,115 @@ select is(
   1::bigint,
   'rerun creates no duplicate financial-success audit event'
 );
+
+select is(
+  (
+    select count(*)::bigint
+    from pg_proc as procedure
+    join pg_namespace as namespace
+      on namespace.oid = procedure.pronamespace
+    where namespace.nspname = 'app_private'
+      and procedure.proname in (
+        'principal_lots_as_of',
+        'calculate_interest_components',
+        'post_interest_for_account_date'
+      )
+      and pg_get_functiondef(procedure.oid)
+        ~* '(double precision|::real|::float)'
+  ),
+  0::bigint,
+  'authoritative interest functions contain no binary floating-point path'
+);
+select is(
+  (
+    select count(*)::bigint
+    from public.audit_events
+    where action = 'interest.accrued'
+      and (
+        after_state ? 'phone'
+        or after_state ? 'address'
+        or after_state ? 'token'
+        or after_state ? 'password'
+        or after_state ? 'secret'
+      )
+  ),
+  0::bigint,
+  'interest audit evidence contains no PII or secret fields'
+);
+select is(
+  (
+    select count(*)::bigint
+    from public.ledger_transactions as transaction
+    where transaction.transaction_type = 'INTEREST_CHARGE'
+      and transaction.created_by is null
+  ),
+  (
+    select count(*)::bigint
+    from public.interest_accruals
+    where posted_interest_paise > 0
+  ),
+  'each engine-authored interest ledger charge has one positive accrual detail'
+);
+select throws_ok(
+  $$insert into public.ledger_transactions (
+      id,
+      organization_id,
+      station_id,
+      credit_account_id,
+      customer_id,
+      transaction_type,
+      status,
+      amount_paise,
+      currency_code,
+      occurred_at,
+      business_date,
+      created_by
+    )
+    values (
+      'c2e00000-0000-0000-0000-000000000999',
+      'a0000000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001',
+      'c2c00000-0000-0000-0000-000000000101',
+      'c2b00000-0000-0000-0000-000000000101',
+      'INTEREST_CHARGE',
+      'POSTED',
+      1,
+      'INR',
+      '2026-01-10 12:00:00+05:30',
+      '2026-01-10',
+      null
+    );
+    insert into public.ledger_entries (
+      organization_id,
+      transaction_id,
+      account_code,
+      direction,
+      amount_paise,
+      currency_code
+    )
+    values
+      (
+        'a0000000-0000-0000-0000-000000000001',
+        'c2e00000-0000-0000-0000-000000000999',
+        'CUSTOMER_INTEREST_RECEIVABLE',
+        'DEBIT',
+        1,
+        'INR'
+      ),
+      (
+        'a0000000-0000-0000-0000-000000000001',
+        'c2e00000-0000-0000-0000-000000000999',
+        'INTEREST_INCOME',
+        'CREDIT',
+        1,
+        'INR'
+      );
+    set constraints system_interest_requires_accrual_detail immediate$$,
+  '23514',
+  'IAC_LEDGER_DETAIL_REQUIRED',
+  'system-authored interest cannot commit without accrual business detail'
+);
+set constraints all deferred;
 
 select throws_ok(
   $$update public.interest_accruals

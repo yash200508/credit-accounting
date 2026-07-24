@@ -87,8 +87,8 @@ still observes `ACTIVE` through commit, after which revocation succeeds.
 
 ## Phase 2C interest coverage
 
-`004_daily_interest_accrual_test.sql` adds 151 assertions, bringing the suite
-to 439. It covers schema and forced RLS, client denial, cron registration,
+`004_daily_interest_accrual_test.sql` adds 159 assertions, bringing the suite
+to 447. It covers schema and forced RLS, client denial, cron registration,
 default/override/effective policy resolution, both grace variants, FIFO
 partial and multi-lot repayments, same-day closing principal, exact `NUMERIC`
 arithmetic, fractional carry, half-away rounding, zero-post evidence,
@@ -128,7 +128,7 @@ deny-all configuration is also visible.
 ## CI
 
 Maven and Supabase validations run as separate workflows. Supabase CI pins CLI
-2.109.1, starts the local stack, performs a clean reset, runs all 439 pgTAP
+2.109.1, starts the local stack, performs a clean reset, runs all 447 pgTAP
 assertions, all three concurrency harnesses, the scheduler registration check,
 lint, and repository hygiene, captures local service logs after failure, and
 always stops containers. It uses no remote Supabase token or project reference.
