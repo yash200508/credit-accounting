@@ -1,0 +1,63 @@
+name: Supabase CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_CLI_VERSION: 2.109.1
+
+jobs:
+  database:
+    name: Reset, pgTAP, and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: supabase/config.toml
+
+      - name: Verify pinned Supabase CLI
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
+
+      - name: Start local Supabase
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} start
+
+      - name: Rebuild database from migrations and fake seed
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} db reset --local
+
+      - name: Run pgTAP database tests
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+
+      - name: Lint public and private application schemas
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db lint --local
+          --schema public,app_private --level warning --fail-on error
+
+      - name: Capture local container logs after failure
+        if: failure()
+        shell: bash
+        run: |
+          docker ps -a --filter "label=com.supabase.cli.project=credit-accounting-phase1-local-gamid"
+          for container_id in $(docker ps -aq --filter "label=com.supabase.cli.project=credit-accounting-phase1-local-gamid"); do
+            container_name=$(docker inspect --format '{{.Name}}' "${container_id}")
+            echo "::group::${container_name}"
+            docker logs --tail 200 "${container_id}" || true
+            echo "::endgroup::"
+          done
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} stop --no-backup

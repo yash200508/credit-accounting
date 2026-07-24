@@ -10,7 +10,7 @@ A Java 17 + JavaFX desktop application for managing gas-station/customer credit 
 - Database path: `${user.home}/.credit-accounting/credit.db`.
 - Main source tree: `src/main/java/com/gasstation/app`.
 - Packaging scripts: `build-app-image.bat` and `build-installer.bat` for Windows app image/MSI packaging.
-- No backend server or Android app is implemented yet.
+- A local Supabase foundation exists under `supabase/`; no client integration or remote backend deployment is implemented yet.
 
 ## Local desktop setup
 
@@ -61,8 +61,9 @@ The installer documentation must stay aligned with the database path used by `Db
 
 - The app is currently local/offline desktop only.
 - There is no implemented role-based login yet.
-- There is no REST backend, PostgreSQL production database, server deployment, or Android attendant app yet.
-- Automated tests are still minimal and should be expanded before production use.
+- The JavaFX client is not yet connected to the local Supabase REST/PostgreSQL foundation.
+- There is no remote Supabase project, production database, Flutter client, Next.js dashboard, or server deployment yet.
+- The Java and database test suites cover Phase 0/1 behavior, but production transaction, concurrency, migration, and operational coverage is still deferred.
 - Maven builds depend on external Maven repository availability unless dependencies are cached or mirrored; see `docs/maven-build-troubleshooting.md`.
 
 ## AI Assistance Disclosure

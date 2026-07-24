@@ -156,8 +156,11 @@ as $$
       and customer.status = 'ACTIVE'
       and organization.is_active
       and membership.status = 'ACTIVE'
-      and current_date >= permission.valid_from
-      and (permission.expires_on is null or current_date <= permission.expires_on)
+      and (now() at time zone 'UTC')::date >= permission.valid_from
+      and (
+        permission.expires_on is null
+        or (now() at time zone 'UTC')::date <= permission.expires_on
+      )
   );
 $$;
 
@@ -427,8 +430,11 @@ as $$
     and account.is_active
     and organization.is_active
     and membership.status = 'ACTIVE'
-    and current_date >= permission.valid_from
-    and (permission.expires_on is null or current_date <= permission.expires_on);
+    and (now() at time zone 'UTC')::date >= permission.valid_from
+    and (
+      permission.expires_on is null
+      or (now() at time zone 'UTC')::date <= permission.expires_on
+    );
 $$;
 
 revoke all on function app_private.current_user_id() from public, anon;

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(61);
+select plan(64);
 
 select is(
   (
@@ -173,12 +173,41 @@ select is(
 
 select is(
   (
+    select count(distinct tablename)::bigint
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = any (
+        array[
+          'profiles',
+          'organizations',
+          'stations',
+          'organization_memberships',
+          'station_memberships',
+          'role_assignments',
+          'customers',
+          'customer_account_settings',
+          'credit_accounts',
+          'customer_drivers',
+          'driver_permissions',
+          'qr_credentials',
+          'interest_policies',
+          'audit_events',
+          'app_settings'
+        ]
+      )
+  ),
+  15::bigint,
+  'every protected table has an explicit policy'
+);
+
+select is(
+  (
     select count(*)::bigint
     from pg_policies
     where schemaname = 'public'
       and (
-        lower(coalesce(qual, '')) in ('true', '(true)')
-        or lower(coalesce(with_check, '')) in ('true', '(true)')
+        lower(coalesce(qual, '')) ~ '(^|[^a-z_])true([^a-z_]|$)'
+        or lower(coalesce(with_check, '')) ~ '(^|[^a-z_])true([^a-z_]|$)'
       )
   ),
   0::bigint,
@@ -276,6 +305,64 @@ select is(
   ),
   0::bigint,
   'QR credentials expose no raw token or payload column'
+);
+
+select is(
+  (
+    select count(*)::bigint
+    from pg_constraint
+    where convalidated
+      and conname = any (
+        array[
+          'customer_account_settings_credit_limit_non_negative',
+          'customer_account_settings_rate_range',
+          'customer_account_settings_grace_days_range',
+          'customer_account_settings_due_days_range',
+          'driver_permissions_transaction_limit_non_negative',
+          'driver_permissions_daily_limit_non_negative',
+          'driver_permissions_valid_dates',
+          'qr_credentials_exactly_one_subject',
+          'qr_credentials_hash_format',
+          'qr_credentials_expiration_after_issue',
+          'qr_credentials_revocation_state',
+          'qr_credentials_rotation_state',
+          'qr_credentials_last_used_after_issue',
+          'interest_policies_rate_range',
+          'interest_policies_grace_days_range',
+          'interest_policies_effective_dates'
+        ]
+      )
+  ),
+  16::bigint,
+  'required financial, driver, QR, and interest constraints are validated'
+);
+
+select is(
+  (
+    with foreign_keys as (
+      select
+        constraint_definition.conrelid,
+        constraint_definition.conkey[1] as first_key
+      from pg_constraint as constraint_definition
+      join pg_class as relation
+        on relation.oid = constraint_definition.conrelid
+      join pg_namespace as namespace
+        on namespace.oid = relation.relnamespace
+      where constraint_definition.contype = 'f'
+        and namespace.nspname = 'public'
+    )
+    select count(*)::bigint
+    from foreign_keys
+    where not exists (
+      select 1
+      from pg_index as index_definition
+      where index_definition.indrelid = foreign_keys.conrelid
+        and index_definition.indisvalid
+        and index_definition.indkey[0] = foreign_keys.first_key
+    )
+  ),
+  0::bigint,
+  'every public foreign key has a usable leading-column index'
 );
 
 set local role authenticated;

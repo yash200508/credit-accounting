@@ -423,37 +423,75 @@ create table public.app_settings (
 
 create index stations_organization_id_idx
   on public.stations (organization_id);
+create index stations_created_by_idx
+  on public.stations (created_by);
+create index stations_updated_by_idx
+  on public.stations (updated_by);
+create index organizations_created_by_idx
+  on public.organizations (created_by);
+create index organizations_updated_by_idx
+  on public.organizations (updated_by);
 create index organization_memberships_user_status_idx
   on public.organization_memberships (user_id, status, organization_id);
+create index organization_memberships_created_by_idx
+  on public.organization_memberships (created_by);
+create index organization_memberships_updated_by_idx
+  on public.organization_memberships (updated_by);
 create index station_memberships_user_status_idx
   on public.station_memberships (user_id, status, station_id);
 create index station_memberships_organization_id_idx
   on public.station_memberships (organization_id);
+create index station_memberships_created_by_idx
+  on public.station_memberships (created_by);
+create index station_memberships_updated_by_idx
+  on public.station_memberships (updated_by);
 create index role_assignments_user_role_organization_idx
   on public.role_assignments (user_id, role, organization_id);
 create index role_assignments_station_user_role_idx
   on public.role_assignments (station_id, user_id, role)
   where station_id is not null;
+create index role_assignments_created_by_idx
+  on public.role_assignments (created_by);
 create index customers_home_station_id_idx
   on public.customers (home_station_id)
   where home_station_id is not null;
 create index customers_auth_user_status_idx
   on public.customers (auth_user_id, status)
   where auth_user_id is not null;
+create index customers_created_by_idx
+  on public.customers (created_by);
+create index customers_updated_by_idx
+  on public.customers (updated_by);
 create index customer_account_settings_organization_id_idx
   on public.customer_account_settings (organization_id);
+create index customer_account_settings_created_by_idx
+  on public.customer_account_settings (created_by);
+create index customer_account_settings_updated_by_idx
+  on public.customer_account_settings (updated_by);
 create index credit_accounts_organization_id_idx
   on public.credit_accounts (organization_id);
 create index credit_accounts_home_station_id_idx
   on public.credit_accounts (home_station_id)
   where home_station_id is not null;
+create index credit_accounts_created_by_idx
+  on public.credit_accounts (created_by);
+create index credit_accounts_updated_by_idx
+  on public.credit_accounts (updated_by);
 create index customer_drivers_customer_id_idx
   on public.customer_drivers (customer_id);
 create index customer_drivers_auth_user_status_idx
   on public.customer_drivers (auth_user_id, status)
   where auth_user_id is not null;
+create index customer_drivers_created_by_idx
+  on public.customer_drivers (created_by);
+create index customer_drivers_updated_by_idx
+  on public.customer_drivers (updated_by);
 create index driver_permissions_customer_organization_idx
   on public.driver_permissions (customer_id, organization_id);
+create index driver_permissions_created_by_idx
+  on public.driver_permissions (created_by);
+create index driver_permissions_updated_by_idx
+  on public.driver_permissions (updated_by);
 create index qr_credentials_organization_status_idx
   on public.qr_credentials (organization_id, status);
 create index qr_credentials_customer_id_idx
@@ -462,9 +500,15 @@ create index qr_credentials_customer_id_idx
 create index qr_credentials_driver_id_idx
   on public.qr_credentials (driver_id)
   where driver_id is not null;
+create index qr_credentials_created_by_idx
+  on public.qr_credentials (created_by);
 create index interest_policies_customer_id_idx
   on public.interest_policies (customer_id)
   where customer_id is not null;
+create index interest_policies_created_by_idx
+  on public.interest_policies (created_by);
+create index interest_policies_updated_by_idx
+  on public.interest_policies (updated_by);
 create index audit_events_organization_occurred_at_idx
   on public.audit_events (organization_id, occurred_at desc);
 create index audit_events_station_occurred_at_idx
@@ -478,6 +522,10 @@ create index audit_events_request_id_idx
 create index app_settings_station_id_idx
   on public.app_settings (station_id)
   where station_id is not null;
+create index app_settings_created_by_idx
+  on public.app_settings (created_by);
+create index app_settings_updated_by_idx
+  on public.app_settings (updated_by);
 
 create function app_private.set_updated_at()
 returns trigger
