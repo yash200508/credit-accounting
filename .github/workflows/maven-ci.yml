@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  MAVEN_OPTS: -Dfile.encoding=UTF-8
+
 jobs:
   build:
     name: Test and package
@@ -26,8 +29,5 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run tests
-        run: mvn test
-
-      - name: Build package without tests
-        run: mvn -DskipTests package
+      - name: Build and test
+        run: mvn --batch-mode --no-transfer-progress clean verify

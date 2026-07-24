@@ -12,6 +12,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <maven.compiler.release>17</maven.compiler.release>
 
     <!-- JavaFX version -->
@@ -87,6 +88,7 @@
         <version>3.13.0</version>
         <configuration>
           <release>${maven.compiler.release}</release>
+          <encoding>${project.build.sourceEncoding}</encoding>
         </configuration>
       </plugin>
 
@@ -110,6 +112,8 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.2.5</version>
         <configuration>
+          <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
+          <encoding>${project.reporting.outputEncoding}</encoding>
           <useModulePath>false</useModulePath>
         </configuration>
       </plugin>
