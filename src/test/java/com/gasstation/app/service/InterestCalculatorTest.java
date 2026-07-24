@@ -63,7 +63,8 @@ class InterestCalculatorTest {
         assertEquals(25_000L, summary.debitsInRangePaise);
         assertEquals(10_000L, summary.creditsInRangePaise);
         assertEquals(65_000L, summary.closingPrincipalPaise);
-        assertEquals(263L, summary.interestPaise);
+        // 50,000 * 2 days + 75,000 * 2 days + 65,000 * 1 day at 0.1% per day.
+        assertEquals(315L, summary.interestPaise);
     }
 
     @Test

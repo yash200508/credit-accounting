@@ -4,6 +4,7 @@ import com.gasstation.app.dao.CustomerDao;
 import com.gasstation.app.dao.TransactionDao;
 import com.gasstation.app.model.Customer;
 import com.gasstation.app.model.Transaction;
+import com.gasstation.app.service.TransactionImportValidator;
 import com.gasstation.app.util.MoneyUtil;
 
 import javafx.beans.property.SimpleStringProperty;

@@ -19,7 +19,7 @@ import java.util.List;
  * Dependency-free smoke checks for core business logic.
  *
  * This can run even when Maven Central is unavailable:
- *   javac -cp src/main/java -d target/smoke-tests src/test/java/com/gasstation/app/BusinessLogicSmokeTest.java
+ *   javac -encoding UTF-8 -cp src/main/java -d target/smoke-tests src/test/java/com/gasstation/app/BusinessLogicSmokeTest.java
  *   java -cp target/smoke-tests:src/main/java com.gasstation.app.BusinessLogicSmokeTest
  */
 public final class BusinessLogicSmokeTest {

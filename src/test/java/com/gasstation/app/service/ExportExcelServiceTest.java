@@ -67,7 +67,8 @@ class ExportExcelServiceTest {
             assertEquals("Export Customer", customers.getRow(1).getCell(1).getStringCellValue());
             assertEquals("9999994001", customers.getRow(1).getCell(2).getStringCellValue());
 
-            assertEquals("Transactions sheet should include header + one posted transaction", 1, transactions.getLastRowNum());
+            assertEquals(1, transactions.getLastRowNum(),
+                    "Transactions sheet should include header + one posted transaction");
             assertEquals(postedTxnId, (long) transactions.getRow(1).getCell(0).getNumericCellValue());
             assertEquals(customerId, (long) transactions.getRow(1).getCell(1).getNumericCellValue());
             assertEquals("Export Customer", transactions.getRow(1).getCell(2).getStringCellValue());

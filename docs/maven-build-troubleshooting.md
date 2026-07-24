@@ -37,6 +37,6 @@ Until Maven repository access works, run the dependency-free smoke test document
 
 ```bash
 mkdir -p target/smoke-tests
-javac -cp src/main/java -d target/smoke-tests src/test/java/com/gasstation/app/BusinessLogicSmokeTest.java
+javac -encoding UTF-8 -cp src/main/java -d target/smoke-tests src/test/java/com/gasstation/app/BusinessLogicSmokeTest.java
 java -cp target/smoke-tests:src/main/java com.gasstation.app.BusinessLogicSmokeTest
 ```

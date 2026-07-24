@@ -35,7 +35,7 @@ A small no-framework smoke test is available for core business logic and can run
 
 ```bash
 mkdir -p target/smoke-tests
-javac -cp src/main/java -d target/smoke-tests src/test/java/com/gasstation/app/BusinessLogicSmokeTest.java
+javac -encoding UTF-8 -cp src/main/java -d target/smoke-tests src/test/java/com/gasstation/app/BusinessLogicSmokeTest.java
 java -cp target/smoke-tests:src/main/java com.gasstation.app.BusinessLogicSmokeTest
 ```
 

@@ -69,12 +69,14 @@ class LedgerExcelExportServiceTest {
             assertEquals("Ledger Customer", customers.getRow(1).getCell(1).getStringCellValue());
             assertNotNull(customers.getRow(1).getCell(1).getHyperlink());
 
-            assertEquals("All_Transactions should include header + January posted transaction only", 1, allTransactions.getLastRowNum());
+            assertEquals(1, allTransactions.getLastRowNum(),
+                    "All_Transactions should include header + January posted transaction only");
             assertEquals(customerId, (long) allTransactions.getRow(1).getCell(1).getNumericCellValue());
             assertEquals("2026-01-01", allTransactions.getRow(1).getCell(2).getStringCellValue());
             assertEquals(10_000L, (long) allTransactions.getRow(1).getCell(4).getNumericCellValue());
 
-            assertEquals("Customer ledger sheet should include header + January posted transaction only", 1, customerLedger.getLastRowNum());
+            assertEquals(1, customerLedger.getLastRowNum(),
+                    "Customer ledger sheet should include header + January posted transaction only");
             assertEquals("2026-01-01", customerLedger.getRow(1).getCell(1).getStringCellValue());
             assertEquals(10_000L, (long) customerLedger.getRow(1).getCell(3).getNumericCellValue());
         }
