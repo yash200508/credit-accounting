@@ -90,6 +90,17 @@ def main() -> int:
             ):
                 failures.append(f"unconditional permissive RLS expression in {relative}")
 
+        if (
+            relative.parts[:2] == (".github", "workflows")
+            and path.suffix.lower() in {".yml", ".yaml"}
+        ):
+            for line_number, line in enumerate(content.splitlines(), start=1):
+                action = re.search(r"^\s*uses:\s*[^@\s]+@([^\s#]+)", line)
+                if action and not re.fullmatch(r"[0-9a-f]{40}", action.group(1)):
+                    failures.append(
+                        f"mutable GitHub Action ref in {relative}:{line_number}"
+                    )
+
     whitespace = git("diff", "--check")
     if whitespace.returncode != 0:
         failures.append(whitespace.stdout.strip() or whitespace.stderr.strip())
@@ -102,7 +113,8 @@ def main() -> int:
 
     print(
         f"PASS: checked {len(files)} tracked files; no runtime artifacts, "
-        "key material, token-shaped secrets, disabled RLS, or broad true policies found."
+        "key material, token-shaped secrets, disabled RLS, broad true policies, "
+        "or mutable GitHub Action refs found."
     )
     return 0
 
