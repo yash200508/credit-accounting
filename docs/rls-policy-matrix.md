@@ -1,0 +1,34 @@
+# RLS Policy Matrix
+
+Every table below has RLS enabled and forced. `anon` receives no table or function access. Table grants and policies are both required; a policy never substitutes for least-privilege grants.
+
+| Table | Owner | Manager | Attendant | Customer | Driver | Client writes |
+|---|---|---|---|---|---|---|
+| `organizations` | Read owned | Read organization containing assignment | Read organization containing assignment | Read linked organization | No direct read | None |
+| `stations` | Read tenant stations | Read assigned | Read assigned | Read own home station | No direct read | None |
+| `profiles` | Own profile | Own profile | Own profile | Own profile | Own profile | Own display fields only |
+| `organization_memberships` | Read owned tenant | Read own | Read own | Read own | Read own | None |
+| `station_memberships` | Read owned tenant | Read assigned station | Read own | None | None | None |
+| `role_assignments` | Read owned tenant | Read own/assigned non-owner | Own only | Own only | Own only | None |
+| `customers` | Read owned tenant | Read assigned station | Denied broad browse | Own only | Denied; use minimal RPC | None |
+| `customer_account_settings` | Read owned tenant | Read assigned station | Denied | Own only | Denied; use minimal RPC | None |
+| `credit_accounts` | Read owned tenant | Read assigned station | Denied | Own only | Denied; use minimal RPC | None |
+| `customer_drivers` | Read owned tenant | Read assigned station | Denied | Read own drivers | Own active row | None |
+| `driver_permissions` | Read owned tenant | Read assigned station | Denied | Read own drivers' permissions | Own active permission | None |
+| `qr_credentials` | Read owned tenant | Denied | Denied | Denied | Denied | None |
+| `interest_policies` | Read owned tenant | Read assigned-station applicable policies | Denied | Read applicable default/override | Denied | None |
+| `audit_events` | Read owned tenant | Read assigned-station events | Denied | Denied | Denied | Insert only via future trusted path; update/delete never |
+| `app_settings` | Read/update owned tenant | Read/update non-protected assigned-station settings | Denied | Denied | Denied | Restricted update columns and row checks |
+
+## Privileged helpers
+
+Helpers live in `app_private`, set an empty `search_path`, obtain the actor from `(select auth.uid())`, and use `SECURITY DEFINER` only to read RLS-protected authorization rows without recursive policy evaluation. Their owner retains no application login. `PUBLIC` and `anon` execution are revoked.
+
+The only data-returning privileged function is `public.get_my_driver_parent_account()`. It accepts no actor, organization, customer, or station parameter and returns a deliberately minimal projection after validating the current caller's active driver relationship.
+
+## Policy rules
+
+- No protected-table policy contains an unrestricted `USING (true)` or `WITH CHECK (true)`.
+- Revoked membership, inactive organization/station, inactive customer, or revoked driver status removes applicable access.
+- Composite tenant/station foreign keys prevent spoofed cross-organization relationships independently of RLS.
+- Direct client writes to role, membership, customer, account, driver, QR, interest, and audit foundations are denied until dedicated audited workflows exist.

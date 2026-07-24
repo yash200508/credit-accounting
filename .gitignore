@@ -1,4 +1,36 @@
 /target/
 /bin/
+/build/
+/dist/
+/out/
+/node_modules/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.*
+
+# Local databases and backups
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+
+# Supabase local state
+/supabase/.branches/
+/supabase/.temp/
+
+# IDE and OS-local state
+/.idea/
+/.vscode/
+/.classpath
+/.project
+/.settings/
 *.log
 .DS_Store
+Thumbs.db
