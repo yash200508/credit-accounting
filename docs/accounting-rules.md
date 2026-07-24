@@ -8,7 +8,18 @@ The maximum supported amount is bounded by `BIGINT`; later posting functions mus
 
 ## Authoritative balances
 
-Phase 1 intentionally stores no outstanding-principal or outstanding-interest aggregate. `credit_accounts` establishes account identity and currency only. The future authoritative balance will be derived from immutable ledger entries written by an atomic posting function.
+`credit_accounts` establishes account identity and currency but stores no mutable
+balance. Outstanding principal is derived from posted
+`CUSTOMER_ACCOUNTS_RECEIVABLE` ledger entries:
+
+```text
+outstanding principal = AR debits - AR credits
+available credit      = credit limit - outstanding principal
+```
+
+Phase 2A writes only AR debits, so principal cannot become negative through the
+implemented workflow. A later repayment slice can credit AR without changing
+the balance formula. Interest remains separate and is not posted in Phase 2A.
 
 Cached balances may be added later only if:
 
@@ -17,15 +28,23 @@ Cached balances may be added later only if:
 - reconciliation can recompute it;
 - tests prove cache/ledger equality.
 
-## Future ledger invariants
+## Ledger invariants
 
 - Posted financial entries are append-only.
 - Corrections use explicit reversal or compensating entries, never update/delete.
-- Each business transaction balances its debit and credit legs.
-- Available credit is checked and posting is completed in one serializable or otherwise concurrency-safe database operation.
-- A client-provided idempotency key is unique within an appropriate tenant/account scope.
+- Each posted business transaction has equal debit and credit totals.
+- A fuel-credit sale has exactly two equal legs: debit customer accounts
+  receivable and credit fuel-sales revenue.
+- Available credit is checked after locking the target credit-account row with
+  `FOR UPDATE`; the sale, transaction header, entries, idempotency result, and
+  audit event commit or roll back together.
+- A high-entropy UUID idempotency key is unique within the organization and
+  operation. Same-key/same-payload replay returns the original receipt;
+  same-key/different-payload fails.
 - The authenticated actor, tenant, station, and account are derived and verified server-side.
 - A successful posting writes an immutable audit event in the same transaction.
+- Money parameters are validated as integral paise before a checked cast to
+  `BIGINT`; arithmetic uses `NUMERIC` intermediates where overflow is possible.
 
 ## Existing Java behavior to preserve or resolve
 
@@ -35,6 +54,9 @@ Cached balances may be added later only if:
 
 Before migration, define how those concepts map to balanced ledger accounts, how overpayments are represented, and how legacy VOID records become reversals without rewriting history.
 
-## Phase 1 exclusions
+## Phase 2A exclusions
 
-No financial transaction, repayment, ledger entry, balance cache, receipt, reconciliation process, or idempotent posting function is created in this phase.
+No repayment, interest accrual/posting, reversal command, price/litre/pump/nozzle
+capture, mutable balance cache, inventory movement, cash reconciliation, or
+legacy-data migration is implemented. Reversal remains a required append-only
+future workflow.

@@ -2,11 +2,14 @@
 
 ## Current and target states
 
-The existing JavaFX application remains an independent offline SQLite client during Phase 1. The new backend foundation is local Supabase: PostgreSQL for durable data and RLS, Supabase Auth identities, and later narrowly scoped database functions or Edge/server functions for atomic business operations.
+The existing JavaFX application remains an independent offline SQLite client.
+The backend slice runs on local Supabase: PostgreSQL supplies durable data, RLS,
+and two narrowly scoped database functions for atomic customer/account creation
+and fuel-credit posting. No client is connected in Phase 2A.
 
 ```mermaid
 flowchart LR
-    subgraph Current["Current desktop (unchanged in Phase 1)"]
+    subgraph Current["Current desktop (unchanged)"]
         J["JavaFX"] --> D["DAO boundary"]
         D --> S["Local SQLite"]
     end
@@ -15,7 +18,7 @@ flowchart LR
         F["Future Flutter client"] --> A["Supabase Auth + API"]
         N["Future Next.js dashboard"] --> A
         A --> P["PostgreSQL + RLS"]
-        A --> X["Trusted atomic functions"]
+        A --> X["Trusted customer and posting functions"]
         X --> P
     end
 
@@ -28,20 +31,41 @@ An organization is the tenant boundary. Stations belong to one organization. Sup
 
 Authorization never trusts role or tenant identifiers supplied as an actor claim. RLS helpers derive the caller from `auth.uid()` and query authorization rows inside a private schema to avoid recursive RLS.
 
+## Trusted operation boundary
+
+Direct clients cannot insert or mutate customer, account, product, ledger,
+idempotency, sale, or audit records. `create_customer_with_credit_account`
+admits an active owner or the station's active manager.
+`post_fuel_credit_transaction` admits an active owner, station manager, or
+station attendant. Both derive `auth.uid()`, tenant, station, and actor role in
+the database, fix an empty `search_path`, and return only safe projections.
+
+Fuel posting first claims the idempotency key, then takes a row lock on the
+credit account. That consistent ordering serializes competing debits while
+allowing same-key requests to wait for and replay the original result.
+
 ## Data-access model
 
 - Protected tables deny anonymous access.
 - Authenticated clients receive only required table privileges; RLS further restricts rows.
 - Owners see only owned organizations.
 - Managers see only assigned station scope.
-- Attendants receive no broad customer browse or financial write policy in Phase 1.
+- Attendants receive no broad customer or ledger browse. They may execute the
+  posting function only for their active assigned station.
 - Customers see only records linked to their Auth user.
 - Drivers read their own driver and permission rows. A no-argument privileged function returns a minimal parent-account projection, because row policies alone cannot safely provide role-dependent column redaction through the shared `authenticated` database role.
-- Role, membership, QR, and audit mutations are reserved for future trusted server-side workflows.
+- Role, membership, and QR mutations remain reserved for future trusted
+  workflows. Audit inserts occur only inside the two Phase 2A trusted
+  functions; audit updates and deletes remain impossible.
 
 ## Financial architecture
 
-Every INR amount is an integer number of paise in `BIGINT`; interest rates are exact `NUMERIC`. Phase 1 stores credit configuration but no authoritative balance. The next slice will introduce a double-entry, append-only ledger and one atomic posting operation that validates available credit, writes ledger entries, and writes an immutable audit event under one transaction and idempotency key.
+Every stored INR amount is integer paise in `BIGINT`; interest rates are exact
+`NUMERIC`. Posted ledger entries are the balance source of truth. A deferred
+constraint trigger requires balanced entries before commit, while mutation
+triggers reject updates and deletes even through privileged SQL. Available
+credit is calculated from locked account settings and posted AR entries, not
+from client input or a mutable cached balance.
 
 ## Audit and secrets
 
@@ -51,8 +75,14 @@ QR payloads contain only a high-entropy opaque token. The database stores its on
 
 ## Deployment boundaries
 
-Phase 1 runs only against the local Supabase containers. Future environments will use separate Supabase projects, migrations promoted through CI/CD, environment-specific public URLs/anon keys, and server-only service credentials. Browser/mobile clients must never contain the service-role key.
+Phase 2A runs only against the local Supabase containers. Future environments
+will use separate Supabase projects, migrations promoted through CI/CD,
+environment-specific public URLs/anon keys, and server-only service
+credentials. Browser/mobile clients must never contain the service-role key.
 
 ## Deliberate exclusions
 
-No client, backend transaction endpoint, ledger, repayment, interest job, real-data import, remote database operation, inventory, or attendance implementation is part of this architecture slice.
+No Flutter/Next.js work, QR resolution, customer or driver login flow,
+repayment, interest job, reversal UI, real-data import, remote project,
+inventory, pump/nozzle, cash reconciliation, or attendance implementation is
+part of Phase 2A.

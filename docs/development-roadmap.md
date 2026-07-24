@@ -8,7 +8,7 @@ Stabilize Java 17 build and encoding, preserve JavaFX/SQLite behavior, and estab
 
 Create the local Supabase foundation: architecture/security documentation, multi-tenant schema, constrained authorization helpers, forced RLS, fake seed data, pgTAP coverage, local reset/lint validation, and separate CI. Do not connect clients or remote projects.
 
-## Phase 2 — recommended vertical slice
+## Phase 2A — secure credit-posting core
 
 ```text
 Create customer
@@ -20,11 +20,15 @@ Create customer
 → reject duplicate idempotency keys
 ```
 
-This slice must include balanced ledger semantics, concurrency tests, checked integer arithmetic, strict actor/station/account authorization, and reversal design. It is not implemented in Phase 1.
+This slice implements balanced append-only ledger semantics, checked integer
+arithmetic, strict actor/station/account authorization, idempotency, and
+separate-session concurrency validation. Client applications and the remaining
+financial workflows stay deferred.
 
 ## Later slices
 
-1. Repayment posting and allocation with receipts, reversals, and reconciliation.
+1. **Next recommended slice:** repayment posting with principal/interest
+   allocation, receipts, append-only reversal semantics, and reconciliation.
 2. Audited owner workflows for memberships, roles, stations, customers, drivers, limits, and QR rotation.
 3. Interest calculation/posting with golden parity tests and idempotent scheduling.
 4. Thin Flutter attendant/customer workflows built only on secure RPC/API boundaries.

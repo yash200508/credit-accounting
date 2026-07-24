@@ -14,20 +14,28 @@ env:
 
 jobs:
   database:
-    name: Reset, pgTAP, and lint
+    name: Reset, pgTAP, concurrency, lint, and hygiene
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: supabase/config.toml
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+
+      - name: Check repository hygiene
+        run: python scripts/check_repository_hygiene.py
 
       - name: Verify pinned Supabase CLI
         run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
@@ -40,6 +48,9 @@ jobs:
 
       - name: Run pgTAP database tests
         run: npx --yes supabase@${SUPABASE_CLI_VERSION} test db
+
+      - name: Prove concurrent credit-limit safety
+        run: python supabase/tests/concurrency/phase_2a_credit_limit_concurrency.py
 
       - name: Lint public and private application schemas
         run: >-

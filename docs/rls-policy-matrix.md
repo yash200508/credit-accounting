@@ -17,18 +17,36 @@ Every table below has RLS enabled and forced. `anon` receives no table or functi
 | `driver_permissions` | Read owned tenant | Read assigned station | Denied | Read own drivers' permissions | Own active permission | None |
 | `qr_credentials` | Read owned tenant | Denied | Denied | Denied | Denied | None |
 | `interest_policies` | Read owned tenant | Read assigned-station applicable policies | Denied | Read applicable default/override | Denied | None |
-| `audit_events` | Read owned tenant | Read assigned-station events | Denied | Denied | Denied | Insert only via future trusted path; update/delete never |
+| `audit_events` | Read owned tenant | Read assigned-station events | Denied | Denied | Denied | Insert only inside trusted functions; update/delete never |
 | `app_settings` | Read/update owned tenant | Read/update non-protected assigned-station settings | Denied | Denied | Denied | Restricted update columns and row checks |
+| `fuel_products` | Read owned tenant | Read applicable assigned-station products | Read applicable assigned-station products | Denied | Denied | None |
+| `ledger_transactions` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
+| `ledger_entries` | Read owned tenant | Read entries for assigned-station transactions | Denied | Denied | Denied | None; trusted function only |
+| `fuel_credit_sales` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
+| `idempotency_keys` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
 
 ## Privileged helpers
 
 Helpers live in `app_private`, set an empty `search_path`, obtain the actor from `(select auth.uid())`, and use `SECURITY DEFINER` only to read RLS-protected authorization rows without recursive policy evaluation. Their owner retains no application login. `PUBLIC` and `anon` execution are revoked.
 
-The only data-returning privileged function is `public.get_my_driver_parent_account()`. It accepts no actor, organization, customer, or station parameter and returns a deliberately minimal projection after validating the current caller's active driver relationship.
+Data-returning privileged functions are deliberately narrow:
+
+- `get_my_driver_parent_account()` returns the existing driver projection.
+- `get_credit_account_balance(account_id)` returns an authorized account's
+  limit, principal, and available credit.
+- `create_customer_with_credit_account(...)` returns identifiers and safe
+  account configuration after an atomic create.
+- `post_fuel_credit_transaction(...)` returns the original or newly committed
+  safe receipt.
+
+Only the latter two mutate data. `PUBLIC` and `anon` execution are revoked.
 
 ## Policy rules
 
 - No protected-table policy contains an unrestricted `USING (true)` or `WITH CHECK (true)`.
 - Revoked membership, inactive organization/station, inactive customer, or revoked driver status removes applicable access.
 - Composite tenant/station foreign keys prevent spoofed cross-organization relationships independently of RLS.
-- Direct client writes to role, membership, customer, account, driver, QR, interest, and audit foundations are denied until dedicated audited workflows exist.
+- Direct client writes to role, membership, customer, account, product, ledger,
+  sale, idempotency, driver, QR, interest, and audit tables are denied.
+- Posted transaction, entry, and sale updates/deletes are also rejected by
+  triggers; RLS and grants are not the only immutability boundary.

@@ -10,7 +10,10 @@ A Java 17 + JavaFX desktop application for managing gas-station/customer credit 
 - Database path: `${user.home}/.credit-accounting/credit.db`.
 - Main source tree: `src/main/java/com/gasstation/app`.
 - Packaging scripts: `build-app-image.bat` and `build-installer.bat` for Windows app image/MSI packaging.
-- A local Supabase foundation exists under `supabase/`; no client integration or remote backend deployment is implemented yet.
+- A local Supabase backend under `supabase/` now includes forced RLS, atomic
+  customer/account creation, idempotent fuel-credit posting, an append-only
+  double-entry ledger, and concurrency validation. No client integration or
+  remote deployment is implemented yet.
 
 ## Local desktop setup
 
@@ -63,7 +66,9 @@ The installer documentation must stay aligned with the database path used by `Db
 - There is no implemented role-based login yet.
 - The JavaFX client is not yet connected to the local Supabase REST/PostgreSQL foundation.
 - There is no remote Supabase project, production database, Flutter client, Next.js dashboard, or server deployment yet.
-- The Java and database test suites cover Phase 0/1 behavior, but production transaction, concurrency, migration, and operational coverage is still deferred.
+- The Java and local database suites cover the Phase 0/1 baseline plus the
+  Phase 2A posting, idempotency, accounting, and concurrent credit-limit slice.
+  Remote/production migration and operational validation remain deferred.
 - Maven builds depend on external Maven repository availability unless dependencies are cached or mirrored; see `docs/maven-build-troubleshooting.md`.
 
 ## AI Assistance Disclosure
@@ -86,5 +91,9 @@ The JavaFX/SQLite application remains unchanged while the new backend is develop
 - [`docs/development-roadmap.md`](docs/development-roadmap.md)
 - [`docs/architecture-decisions/0001-supabase-flutter-nextjs.md`](docs/architecture-decisions/0001-supabase-flutter-nextjs.md)
 - [`docs/architecture-decisions/0002-append-only-ledger.md`](docs/architecture-decisions/0002-append-only-ledger.md)
+- [`docs/credit-posting-workflow.md`](docs/credit-posting-workflow.md)
+- [`docs/architecture-decisions/0003-trusted-financial-posting-functions.md`](docs/architecture-decisions/0003-trusted-financial-posting-functions.md)
+- [`docs/architecture-decisions/0004-ledger-and-idempotency-model.md`](docs/architecture-decisions/0004-ledger-and-idempotency-model.md)
 
-Phase 1 is local-only and does not connect to a remote Supabase project or migrate real customer data.
+Phase 2A remains local-only and does not connect to a remote Supabase project
+or migrate real customer data.
