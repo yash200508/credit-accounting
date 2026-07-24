@@ -1,6 +1,7 @@
-# Initial Entity Relationship Diagram
+# Entity Relationship Diagram
 
-This diagram describes the Phase 1 foundation. It intentionally has no transaction or ledger table.
+This diagram adds the Phase 2A credit-posting entities to the Phase 1
+foundation.
 
 ```mermaid
 erDiagram
@@ -19,6 +20,16 @@ erDiagram
     AUTH_USERS o|--o| CUSTOMERS : represents
     CUSTOMERS ||--|| CUSTOMER_ACCOUNT_SETTINGS : configures
     CUSTOMERS ||--|| CREDIT_ACCOUNTS : owns
+    CREDIT_ACCOUNTS ||--o{ LEDGER_TRANSACTIONS : posts
+    CUSTOMERS ||--o{ LEDGER_TRANSACTIONS : incurs
+    STATIONS ||--o{ LEDGER_TRANSACTIONS : records
+    LEDGER_TRANSACTIONS ||--|{ LEDGER_ENTRIES : balances
+    LEDGER_TRANSACTIONS ||--|| FUEL_CREDIT_SALES : describes
+    FUEL_PRODUCTS ||--o{ FUEL_CREDIT_SALES : sold_as
+    ORGANIZATIONS ||--o{ FUEL_PRODUCTS : configures
+    STATIONS o|--o{ FUEL_PRODUCTS : scopes
+    ORGANIZATIONS ||--o{ IDEMPOTENCY_KEYS : claims
+    CREDIT_ACCOUNTS ||--o{ IDEMPOTENCY_KEYS : protects
     CUSTOMERS ||--o{ CUSTOMER_DRIVERS : authorizes
     AUTH_USERS o|--o| CUSTOMER_DRIVERS : represents
     CUSTOMER_DRIVERS ||--|| DRIVER_PERMISSIONS : limits
@@ -40,4 +51,10 @@ erDiagram
 - A QR credential belongs to exactly one customer or one driver.
 - A customer has one credit account and one account-settings row in this initial model.
 - An interest policy with no customer is an organization default; a customer relationship makes it an override.
-- No stored balance in Phase 1 is an authoritative financial source of truth.
+- No stored balance is authoritative; posted AR ledger entries are the source
+  of outstanding principal.
+- A fuel transaction has one sale and exactly two equal ledger entries.
+- Product scope is either organization-wide or one station, always in the same
+  organization.
+- An organization/operation/idempotency-key tuple identifies one request
+  fingerprint and one completed result.
