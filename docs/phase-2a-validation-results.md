@@ -159,7 +159,17 @@ Python 3.12, a clean local start/reset, all pgTAP tests, the concurrency harness
 database lint, repository hygiene, failure logs, and unconditional container
 cleanup. It requires no remote Supabase credentials.
 
-Draft PR URL and current-head CI results: pending publication.
+Draft PR: [#9, Phase 2A: add secure credit posting core](https://github.com/yash200508/credit-accounting/pull/9).
+
+The published code-and-validation head `7c943d1` completed both independent
+pull-request workflows successfully:
+
+- Maven CI run 15: PASS.
+- Supabase CI run 4: PASS, including clean start/reset, 185 pgTAP tests,
+  concurrency, lint, hygiene, failure-log wiring, and container cleanup.
+
+The documentation-only commit that records these results must also have green
+current-head checks before Phase 2A is declared complete.
 
 ## Remaining risks and next slice
 
