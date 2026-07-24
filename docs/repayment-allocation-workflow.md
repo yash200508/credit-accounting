@@ -64,7 +64,10 @@ No driver ID means the customer delivered the payment. A supplied driver must:
 
 The repayment stores the physical payer separately from the authenticated
 employee who received the cash. Driver attribution never grants posting
-authority and never creates a driver balance or credit account.
+authority and never creates a driver balance or credit account. After the
+credit-account lock, the function revalidates the driver and permission under
+`FOR SHARE` row locks so a concurrent status or expiration update cannot
+invalidate attribution before commit.
 
 ## Accounting meaning
 
@@ -106,9 +109,10 @@ Negative obligations and arithmetic overflow are rejected.
 ## Idempotency and audit
 
 The UUID key is unique within organization plus operation. Its SHA-256
-fingerprint binds station, account, total, mode, canonical allocations, payer
-driver or customer payer, payment method, and safe reference. It contains no
-name, phone, token, secret, or free-form private data.
+fingerprint binds organization, station, account, total, mode, canonical
+allocations, payer driver or customer payer, payment method, and safe
+reference. It contains no name, phone, token, secret, or free-form private
+data.
 
 A successful repayment writes one immutable audit event in the transaction.
 The event records derived actor/role, organization, station, customer, account,

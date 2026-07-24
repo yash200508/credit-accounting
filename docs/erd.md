@@ -1,7 +1,7 @@
 # Entity Relationship Diagram
 
-This diagram adds the Phase 2A credit-posting entities to the Phase 1
-foundation.
+This diagram includes the Phase 2A credit-posting and Phase 2B repayment
+entities on the Phase 1 foundation.
 
 ```mermaid
 erDiagram
@@ -25,6 +25,14 @@ erDiagram
     STATIONS ||--o{ LEDGER_TRANSACTIONS : records
     LEDGER_TRANSACTIONS ||--|{ LEDGER_ENTRIES : balances
     LEDGER_TRANSACTIONS ||--|| FUEL_CREDIT_SALES : describes
+    LEDGER_TRANSACTIONS ||--o| CUSTOMER_REPAYMENTS : settles
+    CUSTOMER_REPAYMENTS ||--|{ REPAYMENT_ALLOCATIONS : allocates
+    CREDIT_ACCOUNTS ||--o{ CUSTOMER_REPAYMENTS : receives
+    CUSTOMERS ||--o{ CUSTOMER_REPAYMENTS : pays
+    STATIONS ||--o{ CUSTOMER_REPAYMENTS : receives
+    CUSTOMER_DRIVERS o|--o{ CUSTOMER_REPAYMENTS : "may deliver"
+    AUTH_USERS ||--o{ CUSTOMER_REPAYMENTS : "received by"
+    CREDIT_ACCOUNTS ||--o{ REPAYMENT_ALLOCATIONS : reduces
     FUEL_PRODUCTS ||--o{ FUEL_CREDIT_SALES : sold_as
     ORGANIZATIONS ||--o{ FUEL_PRODUCTS : configures
     STATIONS o|--o{ FUEL_PRODUCTS : scopes
@@ -51,10 +59,18 @@ erDiagram
 - A QR credential belongs to exactly one customer or one driver.
 - A customer has one credit account and one account-settings row in this initial model.
 - An interest policy with no customer is an organization default; a customer relationship makes it an override.
-- No stored balance is authoritative; posted AR ledger entries are the source
-  of outstanding principal.
+- No stored balance is authoritative. Posted principal- and
+  interest-receivable entries are the sources of outstanding principal and
+  interest.
 - A fuel transaction has one sale and exactly two equal ledger entries.
+- A repayment has one immutable business record and one or two immutable
+  allocations that sum to its total. Its ledger transaction has one cash debit
+  and the exact principal and/or interest receivable credits required by its
+  mode.
+- A driver relationship on a repayment is physical-payer attribution only; the
+  customer credit account remains the sole financial account.
 - Product scope is either organization-wide or one station, always in the same
   organization.
 - An organization/operation/idempotency-key tuple identifies one request
-  fingerprint and one completed result.
+  fingerprint and one operation-specific completed result, preventing a
+  repayment key from colliding with a fuel-posting key.

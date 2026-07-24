@@ -56,6 +56,9 @@ When a driver is supplied, the driver must be active, belong to the account's
 customer and organization, and have a currently valid permission period. The
 driver is attribution only; the parent customer credit account remains the
 sole financial account and the driver does not authorize the station actor.
+Post-lock validation holds shared driver/permission row locks through commit so
+a concurrent non-key revocation or expiration update cannot invalidate the
+accepted attribution.
 
 Database constraint triggers verify both the allocation total and the exact
 ledger shape. Update/delete triggers make repayments and allocations

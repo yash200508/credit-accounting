@@ -4,8 +4,9 @@
 
 The existing JavaFX application remains an independent offline SQLite client.
 The backend slice runs on local Supabase: PostgreSQL supplies durable data, RLS,
-and two narrowly scoped database functions for atomic customer/account creation
-and fuel-credit posting. No client is connected in Phase 2A.
+and narrowly scoped database functions for atomic customer/account creation,
+fuel-credit posting, repayment posting, and authorized balance reads. No client
+is connected in Phase 2B.
 
 ```mermaid
 flowchart LR
@@ -18,7 +19,7 @@ flowchart LR
         F["Future Flutter client"] --> A["Supabase Auth + API"]
         N["Future Next.js dashboard"] --> A
         A --> P["PostgreSQL + RLS"]
-        A --> X["Trusted customer and posting functions"]
+        A --> X["Trusted customer, posting, and balance functions"]
         X --> P
     end
 
@@ -37,12 +38,17 @@ Direct clients cannot insert or mutate customer, account, product, ledger,
 idempotency, sale, or audit records. `create_customer_with_credit_account`
 admits an active owner or the station's active manager.
 `post_fuel_credit_transaction` admits an active owner, station manager, or
-station attendant. Both derive `auth.uid()`, tenant, station, and actor role in
-the database, fix an empty `search_path`, and return only safe projections.
+station attendant. `post_customer_repayment` admits the same station-side
+roles and records either customer delivery or a validated active linked driver.
+All mutation functions derive `auth.uid()`, tenant, station, customer, and
+actor role in the database, fix an empty `search_path`, and return only safe
+projections.
 
-Fuel posting first claims the idempotency key, then takes a row lock on the
-credit account. That consistent ordering serializes competing debits while
-allowing same-key requests to wait for and replay the original result.
+Fuel and repayment posting first claim an operation-scoped idempotency key,
+then take the same credit-account row lock. That consistent ordering serializes
+competing debits and credits while allowing same-key requests to wait for and
+replay the original result. Repayment recalculates principal and interest after
+the lock and rejects overpayment rather than creating unallocated credit.
 
 ## Data-access model
 
@@ -51,21 +57,28 @@ allowing same-key requests to wait for and replay the original result.
 - Owners see only owned organizations.
 - Managers see only assigned station scope.
 - Attendants receive no broad customer or ledger browse. They may execute the
-  posting function only for their active assigned station.
+  fuel and repayment posting functions and read one exact account's obligations
+  only for their active assigned station.
 - Customers see only records linked to their Auth user.
 - Drivers read their own driver and permission rows. A no-argument privileged function returns a minimal parent-account projection, because row policies alone cannot safely provide role-dependent column redaction through the shared `authenticated` database role.
+- Owners and assigned managers may read repayment/allocation rows in financial
+  station scope. Attendants receive the safe receipt but no broad repayment
+  browse.
 - Role, membership, and QR mutations remain reserved for future trusted
-  workflows. Audit inserts occur only inside the two Phase 2A trusted
-  functions; audit updates and deletes remain impossible.
+  workflows. Audit inserts occur only inside trusted mutation functions; audit
+  updates and deletes remain impossible.
 
 ## Financial architecture
 
 Every stored INR amount is integer paise in `BIGINT`; interest rates are exact
 `NUMERIC`. Posted ledger entries are the balance source of truth. A deferred
 constraint trigger requires balanced entries before commit, while mutation
-triggers reject updates and deletes even through privileged SQL. Available
-credit is calculated from locked account settings and posted AR entries, not
-from client input or a mutable cached balance.
+triggers reject updates and deletes even through privileged SQL. Repayment
+allocation totals and transaction-specific entry shapes are also checked at
+commit. Principal and posted interest are derived from separate receivable
+accounts; total due is their sum, while available credit is the configured
+limit minus principal only. No client input or mutable cached balance is
+authoritative.
 
 ## Audit and secrets
 
@@ -75,14 +88,15 @@ QR payloads contain only a high-entropy opaque token. The database stores its on
 
 ## Deployment boundaries
 
-Phase 2A runs only against the local Supabase containers. Future environments
+Phase 2B runs only against the local Supabase containers. Future environments
 will use separate Supabase projects, migrations promoted through CI/CD,
 environment-specific public URLs/anon keys, and server-only service
 credentials. Browser/mobile clients must never contain the service-role key.
 
 ## Deliberate exclusions
 
-No Flutter/Next.js work, QR resolution, customer or driver login flow,
-repayment, interest job, reversal UI, real-data import, remote project,
-inventory, pump/nozzle, cash reconciliation, or attendance implementation is
-part of Phase 2A.
+No Flutter/Next.js work, QR resolution, customer or driver posting authority,
+automated interest calculation/accrual, production interest-charge RPC,
+overpayment/customer credit, non-cash method, refund, reversal, real-data
+import, remote project, inventory, pump/nozzle, cash reconciliation, or
+attendance implementation is part of Phase 2B.

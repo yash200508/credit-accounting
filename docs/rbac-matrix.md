@@ -15,8 +15,10 @@ All permissions are bounded by active membership and the caller's organization o
 | Browse QR hashes | Owner only if operationally required | No direct access | No | No | No | No |
 | Create customer + credit account | Trusted function, owned tenant/station | Trusted function, assigned station | No | No | No | No |
 | Post fuel credit | Trusted function, owned tenant/station | Trusted function, assigned station | Trusted function, assigned station | No | No | No |
-| Read calculated balance | Owned tenant | Assigned station | Receipt only, no balance lookup | Own account | No | No |
-| Read ledger/sales | Owned tenant | Assigned station | No broad read | No direct read in Phase 2A | No | No |
+| Post customer repayment | Trusted function, owned tenant/station | Trusted function, assigned station | Trusted function, assigned station | No | No | No |
+| Attribute physical payer driver | Valid active linked driver only | Valid active linked driver only | Valid active linked driver only | No | No authority | No |
+| Read calculated obligations | Owned tenant | Assigned station | Exact account in assigned station | Own account | No | No |
+| Read ledger/sales/repayments | Owned tenant | Assigned station | No broad read | No direct financial-table read | No | No |
 | Mutate posted financial records | Never | Never | Never | Never | Never | Never |
 | Read audit events | Owned organization | Assigned-station events | No | No | No | No |
 | Update/delete audit events | Never | Never | Never | Never | Never | Never |
@@ -33,7 +35,12 @@ All permissions are bounded by active membership and the caller's organization o
 
 Normal clients cannot insert, update, or delete memberships or role assignments. A manager cannot promote themselves, grant owner, move a station to another tenant, or change protected ownership. Those operations require future audited owner/admin workflows with explicit invariants.
 
-The two Phase 2A trusted functions are capabilities, not broad write grants.
-They derive the actor and protected ownership fields, validate active
-memberships, and write an audit event in the same transaction. Attendants still
-cannot create customers or browse customer/account/ledger tables.
+The trusted mutation functions are capabilities, not broad write grants. They
+derive the actor and protected ownership fields, validate active memberships,
+and write an audit event in the same transaction. Attendants still cannot
+create customers or browse customer/account/ledger/repayment tables.
+
+`post_customer_repayment` derives the employee from `auth.uid()`. An optional
+driver ID identifies only who physically delivered cash; it must belong to the
+target customer and tenant, be active, and have a currently valid permission.
+It never authorizes the caller and never creates a driver account or balance.

@@ -4,22 +4,29 @@
 
 All INR monetary fields use signed PostgreSQL `BIGINT` integer paise. Domain constraints restrict fields such as credit limits and driver limits to non-negative values. Client code may format paise as rupees for display, but decimal/floating-point UI values are never authoritative.
 
-The maximum supported amount is bounded by `BIGINT`; later posting functions must use checked arithmetic and reject overflow.
+The maximum supported amount is bounded by `BIGINT`. Trusted posting functions
+validate integral `NUMERIC` inputs before casting and use checked arithmetic to
+reject overflow.
 
 ## Authoritative balances
 
-`credit_accounts` establishes account identity and currency but stores no mutable
-balance. Outstanding principal is derived from posted
-`CUSTOMER_ACCOUNTS_RECEIVABLE` ledger entries:
+`credit_accounts` establishes account identity and currency but stores no
+mutable balance. Principal and interest are distinct obligations derived from
+posted ledger entries:
 
 ```text
-outstanding principal = AR debits - AR credits
+outstanding principal = CUSTOMER_ACCOUNTS_RECEIVABLE debits
+                        - CUSTOMER_ACCOUNTS_RECEIVABLE credits
+outstanding interest  = CUSTOMER_INTEREST_RECEIVABLE debits
+                        - CUSTOMER_INTEREST_RECEIVABLE credits
+total due             = outstanding principal + outstanding interest
 available credit      = credit limit - outstanding principal
 ```
 
-Phase 2A writes only AR debits, so principal cannot become negative through the
-implemented workflow. A later repayment slice can credit AR without changing
-the balance formula. Interest remains separate and is not posted in Phase 2A.
+Interest does not consume available credit under the approved Phase 2B policy.
+The trusted repayment function rejects any component above its corresponding
+obligation, so neither derived balance can become negative. There is no
+authoritative cached balance.
 
 Cached balances may be added later only if:
 
@@ -35,9 +42,24 @@ Cached balances may be added later only if:
 - Each posted business transaction has equal debit and credit totals.
 - A fuel-credit sale has exactly two equal legs: debit customer accounts
   receivable and credit fuel-sales revenue.
+- A historical interest charge has exactly two equal legs: debit customer
+  interest receivable and credit interest income. Phase 2B uses this shape only
+  for privileged deterministic test fixtures and exposes no production charge
+  function.
+- A principal-only repayment debits cash on hand and credits customer accounts
+  receivable by the same amount.
+- An interest-only repayment debits cash on hand and credits customer interest
+  receivable by the same amount.
+- A split repayment has one cash debit for the total and one credit to each
+  receivable for the exact positive component.
+- Repayment allocation rows must sum exactly to the cash total. Split mode
+  requires both components; one-sided payments use the one-sided mode.
 - Available credit is checked after locking the target credit-account row with
   `FOR UPDATE`; the sale, transaction header, entries, idempotency result, and
   audit event commit or roll back together.
+- Repayment uses the same account-row lock and commits or rolls back its
+  repayment detail, allocations, transaction, entries, audit event, and
+  idempotency result together.
 - A high-entropy UUID idempotency key is unique within the organization and
   operation. Same-key/same-payload replay returns the original receipt;
   same-key/different-payload fails.
@@ -48,15 +70,23 @@ Cached balances may be added later only if:
 
 ## Existing Java behavior to preserve or resolve
 
-- Existing SQLite transaction types are DEBIT (fuel credit extended) and CREDIT (payment received).
-- Payments use FIFO allocation against oldest debits in reporting calculations.
+- Existing SQLite transaction types are DEBIT (fuel credit extended) and CREDIT
+  (payment received).
+- SQLite reporting uses FIFO allocation against oldest debits. Phase 2B instead
+  records the employee's explicit principal/interest choice. A governed legacy
+  migration must reconcile this semantic difference rather than silently
+  importing FIFO results.
 - Voided SQLite transactions remain present and are excluded from posted sums.
 
-Before migration, define how those concepts map to balanced ledger accounts, how overpayments are represented, and how legacy VOID records become reversals without rewriting history.
+Before migration, define how legacy VOID records become append-only reversals
+without rewriting history. Overpayments are rejected in Phase 2B; unallocated
+customer credit is not represented.
 
-## Phase 2A exclusions
+## Phase 2B exclusions
 
-No repayment, interest accrual/posting, reversal command, price/litre/pump/nozzle
-capture, mutable balance cache, inventory movement, cash reconciliation, or
-legacy-data migration is implemented. Reversal remains a required append-only
-future workflow.
+Automated interest calculation, grace-policy execution, accrual scheduling,
+compounding, a production interest-charge function, overpayment balances,
+unallocated customer credit, non-cash methods, refunds, reversals,
+price/litre/pump/nozzle capture, inventory movement, cash reconciliation, and
+legacy-data migration are not implemented. Reversal remains a required
+append-only future workflow.
