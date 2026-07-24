@@ -102,11 +102,12 @@ or idempotency result.
 
 ## Idempotency and audit
 
-An idempotency key is scoped by organization, operation type, and credit
-account. A SHA-256 fingerprint covers the canonical non-secret request payload.
-The first successful request stores a safe receipt. The same key and payload
-returns that receipt without another financial effect or audit-success event.
-The same key with a changed payload returns a deterministic conflict. Failed
+An idempotency key is unique within its organization and operation type. The
+credit account and other material inputs are bound into a SHA-256 fingerprint
+of the canonical non-secret request payload. The first successful request
+stores a safe receipt. The same key and payload returns that receipt without
+another financial effect or audit-success event. The same key with a changed
+account or other changed payload returns a deterministic conflict. Failed
 requests roll back the key and may be retried safely.
 
 Successful customer creation and successful fuel posting each create an
