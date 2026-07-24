@@ -26,6 +26,9 @@ Every table below has RLS enabled and forced. `anon` receives no table or functi
 | `idempotency_keys` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
 | `customer_repayments` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
 | `repayment_allocations` | Read allocations for readable repayments | Read allocations for assigned-station repayments | Denied | Denied | Denied | None; trusted function only |
+| `interest_accrual_runs` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; internal engine only |
+| `interest_accruals` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; internal engine only |
+| `interest_accrual_components` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; internal engine only |
 
 ## Privileged helpers
 
@@ -53,14 +56,23 @@ are not client-callable. Phase 2B also explicitly revokes generated
 `service_role` table access and function execution for its financial objects,
 matching the Phase 2A raw-write boundary.
 
+Phase 2C private functions resolve policies, derive FIFO lots, calculate exact
+components, post one account/date, run bounded station cycles, and expose the
+fixed cron entry point. `PUBLIC`, `anon`, `authenticated`, and `service_role`
+execution is revoked. `cron` schema usage is also revoked from those roles.
+Only PostgreSQL's controlled internal job owner invokes the scheduled entry
+point.
+
 ## Policy rules
 
 - No protected-table policy contains an unrestricted `USING (true)` or `WITH CHECK (true)`.
 - Revoked membership, inactive organization/station, inactive customer, or revoked driver status removes applicable access.
 - Composite tenant/station foreign keys prevent spoofed cross-organization relationships independently of RLS.
 - Direct client writes to role, membership, customer, account, product, ledger,
-  sale, repayment, allocation, idempotency, driver, QR, interest, and audit
-  tables are denied.
+  sale, repayment, allocation, idempotency, driver, QR, policy, accrual run,
+  accrual, component, and audit tables are denied.
 - Posted transaction, entry, sale, repayment, and allocation updates/deletes
   are also rejected by triggers; RLS and grants are not the only immutability
   boundary.
+- Interest evidence tables are append-only; operational runs permit exactly
+  one guarded `STARTED` to final transition.

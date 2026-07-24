@@ -2,11 +2,15 @@
 
 ## Scope and assets
 
-Phase 2B protects tenant identity, role assignments, customer and driver
+Phase 2C protects tenant identity, role assignments, customer and driver
 personal data, credit configuration, QR credential hashes, interest policies,
 fuel products, append-only sales and repayments, explicit allocations,
 operation-specific idempotency results, audit records, and settings in local
 Supabase.
+
+Interest policies, station timezones, immutable transaction business dates,
+daily calculation evidence, fractional carry, and scheduler authority are
+also accounting-security assets.
 
 Primary assets are authorization integrity, tenant isolation, customer privacy,
 exact principal/interest obligations, ledger/audit immutability, idempotency
@@ -43,6 +47,10 @@ boundary.
 | Elevation of privilege | `SECURITY DEFINER` bypasses tenant rules | Empty `search_path`, fully qualified objects, `auth.uid()`, explicit role checks, narrow returns, and execute revocations/grants | Every new privileged function requires focused review |
 | Replay/tampering | Duplicate payment or same key with changed payload | Organization + operation + UUID claim and SHA-256 fingerprint over material non-secret inputs; replay returns stored result and conflicts fail | Client key generation quality must be enforced in future clients |
 | Arithmetic | Negative, fractional, or overflowing amounts corrupt balances | Positive integral validation, `NUMERIC` intermediates, checked `BIGINT` casts/addition/subtraction, and negative-obligation rejection | Load/performance limits require staging measurement |
+| Tampering | Client backdates interest or spoofs rate/grace policy | No client accrual RPC; engine derives stored business dates and effective policy server-side; evidence snapshots the result | Operator policy-change workflow needs dual-control design |
+| Tampering | Duplicate scheduler/catch-up compounds interest | Account/date/version uniqueness, shared account lock, FIFO fuel-only basis, named cron job, and safe replay | Production alerting on repeated failures is future work |
+| Elevation of privilege | pg_cron command exposes a secret or client-callable global trigger | Fixed SQL command, no HTTP/key, controlled job name, revoked cron schema and function execution | Hosted-project job owner and monitoring require deployment review |
+| Information disclosure | Components leak customer PII | Evidence stores UUID relationships and accounting snapshots only; RLS limits raw reads to owner/assigned manager | Export/report redaction remains future work |
 
 ## Accounting-specific abuse cases
 
@@ -54,8 +62,14 @@ boundary.
   are rejected rather than represented implicitly.
 - Transaction-type-specific deferred constraints enforce the expected two- or
   three-entry shape and debit/credit equality.
-- Historical interest charges can be created only by privileged migrations or
-  tests. No normal-client interest-charge RPC exists.
+- Production interest charges are created only by the private account-locked
+  engine. No normal-client interest-charge RPC exists.
+- Only fuel-principal debit lots enter the basis. Interest receivable,
+  previously posted interest, and total due are structurally excluded, so the
+  engine cannot compound.
+- A disabled policy stops new raw interest without forgiving historical
+  receivable. Inactive accounts with debt remain eligible unless policy
+  disables them.
 
 ## QR threats
 
@@ -90,6 +104,13 @@ cannot overpay INR 1,000 principal and that the loser leaves no artifacts. A
 mixed fuel-versus-repayment race proves both functions serialize on the same
 account row. A third race proves a concurrent non-key driver-status revocation
 waits for the attributed repayment to commit.
+
+The Phase 2C harness proves duplicate account/date workers create one logical
+calculation and at most one ledger/audit effect. It also proves accrual
+serializes behind same-day repayment and fuel posting on the shared account
+lock, observes a complete closing balance, and respects a new fuel lot's grace
+threshold. The scheduler check verifies registration and privileges only; it
+does not claim a real wall-clock cron firing.
 
 ## Remaining security work
 
