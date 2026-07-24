@@ -92,12 +92,18 @@ Result: PASS — 37 tests, 0 failures, 0 errors, 0 skipped; JAR built successful
 
 The existing non-blocking Log4j2 SimpleLogger fallback warning remains. No stabilized Java source was changed by Phase 1.
 
+## GitHub Actions
+
+The draft pull request triggered both independent workflows on commit `e53d0b7`:
+
+- Maven CI run 12: PASS.
+- Supabase CI run 1: PASS, including pinned CLI verification, local start, clean reset, 64 pgTAP tests, lint, and container cleanup.
+
 ## Skipped or deferred checks
 
 - Remote Supabase validation and production deployment were deliberately skipped because Phase 1 is local-only.
 - Real SQLite/customer-data migration was deliberately skipped.
 - Flutter, Next.js, final ledger, transaction posting, repayment, interest jobs, inventory, and attendance were deliberately not implemented.
-- GitHub Actions execution is pending the branch push and draft pull request; local equivalents are green.
 
 ## Remaining risks
 
