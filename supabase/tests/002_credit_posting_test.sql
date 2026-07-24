@@ -95,6 +95,41 @@ select ok(
   'authenticated clients have no raw Phase 2A write privileges'
 );
 
+select ok(
+  not has_table_privilege('service_role', 'public.fuel_products', 'insert')
+  and not has_table_privilege('service_role', 'public.fuel_products', 'update')
+  and not has_table_privilege('service_role', 'public.fuel_products', 'delete')
+  and not has_table_privilege(
+    'service_role',
+    'public.ledger_transactions',
+    'insert'
+  )
+  and not has_table_privilege(
+    'service_role',
+    'public.ledger_transactions',
+    'update'
+  )
+  and not has_table_privilege(
+    'service_role',
+    'public.ledger_transactions',
+    'delete'
+  )
+  and not has_table_privilege('service_role', 'public.ledger_entries', 'insert')
+  and not has_table_privilege('service_role', 'public.ledger_entries', 'update')
+  and not has_table_privilege('service_role', 'public.ledger_entries', 'delete')
+  and not has_table_privilege(
+    'service_role',
+    'public.fuel_credit_sales',
+    'insert'
+  )
+  and not has_table_privilege(
+    'service_role',
+    'public.idempotency_keys',
+    'insert'
+  ),
+  'service role has no raw Phase 2A mutation capability'
+);
+
 select is(
   (
     select count(*)::bigint
@@ -195,6 +230,43 @@ select is(
   0::bigint,
   'fuel sales contain no deferred price, litre, pump, or nozzle fields'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+
+select throws_ok(
+  $$
+    select *
+    from public.create_customer_with_credit_account(
+      'a1000000-0000-0000-0000-000000000001',
+      'Missing',
+      'Identity',
+      '+15550102000'
+    )
+  $$,
+  'P0001',
+  'CCC_AUTHENTICATION_REQUIRED',
+  'customer creation rejects an authenticated role without an Auth identity'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.post_fuel_credit_transaction(
+      'a3000000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001',
+      'af100000-0000-0000-0000-000000000001',
+      1000,
+      'c1000000-0000-0000-0000-000000000000'
+    )
+  $$,
+  'P0001',
+  'FCP_AUTHENTICATION_REQUIRED',
+  'fuel posting rejects an authenticated role without an Auth identity'
+);
+
+reset role;
 
 -- Trusted customer/account creation.
 set local role authenticated;
@@ -1177,6 +1249,87 @@ select throws_ok(
   'P0001',
   'FCP_AMOUNT_OVERFLOW',
   'posting beyond BIGINT is rejected with a stable overflow error'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.post_fuel_credit_transaction(
+      'a3000000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001',
+      'af100000-0000-0000-0000-000000000001',
+      1000,
+      null
+    )
+  $$,
+  'P0001',
+  'FCP_IDEMPOTENCY_KEY_REQUIRED',
+  'posting requires a high-entropy client UUID idempotency key'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.post_fuel_credit_transaction(
+      'a3000000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001',
+      'af100000-0000-0000-0000-000000000001',
+      1000,
+      'c1000000-0000-0000-0000-000000000028',
+      'contains spaces'
+    )
+  $$,
+  'P0001',
+  'FCP_INVALID_SOURCE_REFERENCE',
+  'posting rejects an unsafe free-form source reference'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.post_fuel_credit_transaction(
+      'ee000000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001',
+      'af100000-0000-0000-0000-000000000001',
+      1000,
+      'c1000000-0000-0000-0000-000000000029'
+    )
+  $$,
+  'P0001',
+  'FCP_ACCOUNT_INVALID',
+  'posting rejects an unknown credit account with a stable error'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.post_fuel_credit_transaction(
+      'a3000000-0000-0000-0000-000000000001',
+      'a1000000-0000-0000-0000-000000000001',
+      'ee000000-0000-0000-0000-000000000002',
+      1000,
+      'c1000000-0000-0000-0000-000000000030'
+    )
+  $$,
+  'P0001',
+  'FCP_PRODUCT_INVALID',
+  'posting rejects an unknown fuel product with a stable error'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.post_fuel_credit_transaction(
+      'a3000000-0000-0000-0000-000000000001',
+      'ee000000-0000-0000-0000-000000000003',
+      'af100000-0000-0000-0000-000000000001',
+      1000,
+      'c1000000-0000-0000-0000-000000000031'
+    )
+  $$,
+  'P0001',
+  'FCP_STATION_INVALID',
+  'posting rejects an unknown or inactive station with a stable error'
 );
 
 -- Exact-limit and insufficient-credit behavior on the ₹1,000 fixture.

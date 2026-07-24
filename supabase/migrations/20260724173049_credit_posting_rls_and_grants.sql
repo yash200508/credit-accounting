@@ -90,6 +90,12 @@ grant select on table public.ledger_entries to authenticated;
 grant select on table public.fuel_credit_sales to authenticated;
 grant select on table public.idempotency_keys to authenticated;
 
+revoke all on table public.fuel_products from service_role;
+revoke all on table public.ledger_transactions from service_role;
+revoke all on table public.ledger_entries from service_role;
+revoke all on table public.fuel_credit_sales from service_role;
+revoke all on table public.idempotency_keys from service_role;
+
 create policy fuel_products_select_authorized
 on public.fuel_products
 for select
