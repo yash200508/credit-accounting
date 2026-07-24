@@ -55,6 +55,12 @@ jobs:
       - name: Prove concurrent repayment safety
         run: python supabase/tests/concurrency/phase_2b_repayment_concurrency.py
 
+      - name: Prove concurrent interest-accrual safety
+        run: python supabase/tests/concurrency/phase_2c_interest_accrual_concurrency.py
+
+      - name: Verify controlled hourly scheduler registration
+        run: python supabase/tests/scheduler/phase_2c_scheduler_registration.py
+
       - name: Lint public and private application schemas
         run: >-
           npx --yes supabase@${SUPABASE_CLI_VERSION} db lint --local
