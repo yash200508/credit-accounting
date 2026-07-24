@@ -224,7 +224,14 @@ named concurrency harnesses (including all three Phase 2B scenarios), lints
 and always stops containers. It uses no remote Supabase credential or project.
 Maven CI remains separate.
 
-Draft PR and current-head CI run links are recorded after publication.
+Publication evidence:
+
+- Draft PR: [#10, Phase 2B: post and allocate customer repayments](https://github.com/yash200508/credit-accounting/pull/10)
+- First published-head Maven CI: [run 19, passed](https://github.com/yash200508/credit-accounting/actions/runs/30123316021)
+- First published-head Supabase CI: [run 8, passed](https://github.com/yash200508/credit-accounting/actions/runs/30123316139)
+
+The final documentation-only commit is required to pass both workflows again
+before the phase is reported complete.
 
 ## Remaining risks and next slice
 
