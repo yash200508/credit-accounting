@@ -54,7 +54,9 @@ allowing same-key requests to wait for and replay the original result.
   posting function only for their active assigned station.
 - Customers see only records linked to their Auth user.
 - Drivers read their own driver and permission rows. A no-argument privileged function returns a minimal parent-account projection, because row policies alone cannot safely provide role-dependent column redaction through the shared `authenticated` database role.
-- Role, membership, QR, and audit mutations are reserved for future trusted server-side workflows.
+- Role, membership, and QR mutations remain reserved for future trusted
+  workflows. Audit inserts occur only inside the two Phase 2A trusted
+  functions; audit updates and deletes remain impossible.
 
 ## Financial architecture
 
@@ -73,7 +75,10 @@ QR payloads contain only a high-entropy opaque token. The database stores its on
 
 ## Deployment boundaries
 
-Phase 1 runs only against the local Supabase containers. Future environments will use separate Supabase projects, migrations promoted through CI/CD, environment-specific public URLs/anon keys, and server-only service credentials. Browser/mobile clients must never contain the service-role key.
+Phase 2A runs only against the local Supabase containers. Future environments
+will use separate Supabase projects, migrations promoted through CI/CD,
+environment-specific public URLs/anon keys, and server-only service
+credentials. Browser/mobile clients must never contain the service-role key.
 
 ## Deliberate exclusions
 

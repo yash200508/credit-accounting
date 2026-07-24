@@ -17,7 +17,7 @@ Every table below has RLS enabled and forced. `anon` receives no table or functi
 | `driver_permissions` | Read owned tenant | Read assigned station | Denied | Read own drivers' permissions | Own active permission | None |
 | `qr_credentials` | Read owned tenant | Denied | Denied | Denied | Denied | None |
 | `interest_policies` | Read owned tenant | Read assigned-station applicable policies | Denied | Read applicable default/override | Denied | None |
-| `audit_events` | Read owned tenant | Read assigned-station events | Denied | Denied | Denied | Insert only via future trusted path; update/delete never |
+| `audit_events` | Read owned tenant | Read assigned-station events | Denied | Denied | Denied | Insert only inside trusted functions; update/delete never |
 | `app_settings` | Read/update owned tenant | Read/update non-protected assigned-station settings | Denied | Denied | Denied | Restricted update columns and row checks |
 | `fuel_products` | Read owned tenant | Read applicable assigned-station products | Read applicable assigned-station products | Denied | Denied | None |
 | `ledger_transactions` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
