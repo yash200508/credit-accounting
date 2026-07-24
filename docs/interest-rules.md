@@ -1,43 +1,113 @@
 # Interest Rules
 
-## Foundation model
+## Authoritative backend rule
 
-Interest policies support an organization default and optional customer override. Rates use `NUMERIC(9,8)` as an annual decimal fraction: `0.18000000` means 18%. Valid rates are between zero and one inclusive.
+Phase 2C calculates daily simple interest in PostgreSQL:
 
-The default business assumption is 18% annual simple interest.
+```text
+raw interest in paise =
+closing eligible principal in paise × annual rate ÷ 365
+```
 
-Each policy records:
+The organization default is `0.18000000` (18%). A non-overlapping,
+effective-dated customer policy overrides the organization default. Policy
+rows also snapshot grace days, grace type, the enabled switch, and the fixed
+`365` day-count basis. Effective-from is inclusive and effective-to is
+exclusive.
 
-- annual rate;
-- grace days;
-- grace policy;
-- inclusive effective-from date;
-- optional exclusive effective-to date;
-- active/inactive state.
+Calculations use exact `NUMERIC(38,18)` paise. No authoritative binary
+floating point is used. The denominator remains 365 on February 29.
 
-The initial grace policies are:
+## Principal basis and business date
 
-- `AFTER_GRACE_ONLY`: no interest during grace; interest starts after grace.
-- `RETROACTIVE_AFTER_GRACE`: once grace is exceeded, accrue from the original due boundary.
+Only posted `FUEL_CREDIT` principal lots are eligible. Existing interest,
+interest-income entries, fees, total due, and earlier interest charges are
+never principal inputs. Consequently interest does not compound.
 
-## Calculation decisions required before posting
+Every principal-affecting ledger transaction stores an immutable
+`business_date`, derived from `occurred_at` in the posting station's validated
+IANA timezone. Daily interest uses closing principal after all events carrying
+that stored date:
 
-Phase 1 stores policy only; it does not post interest. The next interest slice must define and test:
+- same-day principal repayments reduce the day's basis;
+- same-day fuel can accrue when its grace is zero;
+- repayments reduce the oldest fuel lots first for interest aging;
+- an interest-only repayment never changes a principal lot;
+- a split repayment changes lots only by its principal component.
 
-- day-count convention (the current Java logic uses actual days divided by 365);
-- whether the due date itself accrues interest;
-- effective-date boundary behavior;
-- when customer overrides supersede defaults;
-- rounding point and rule for sub-paise amounts;
-- leap-year treatment;
-- payment allocation between principal and interest;
-- policy changes while principal remains outstanding;
-- reversals and backdated entries.
+The FIFO lot view is derived from ledger entries. It is evidence for interest
+eligibility and legacy reconciliation, not a second stored principal balance.
 
-## Legacy compatibility risk
+## Grace semantics
 
-The Java calculator uses `double`, rounds each date segment to the nearest paise, and computes simple interest on FIFO outstanding principal over `[from, to)`. PostgreSQL policies use exact numeric storage. A golden test corpus must compare old and new calculations, and any intentional difference must be approved before migrating balances.
+For source date `D` and `G` grace days, the threshold is `D + G`.
 
-## Safety
+`AFTER_GRACE_ONLY` records zero through `D + G - 1`. Interest begins on the
+threshold and never catches up the free days.
 
-Clients cannot directly post interest or authoritatively calculate it. A future trusted job/function will resolve the effective policy, calculate exact results, post balanced append-only ledger entries, and record an audit event idempotently.
+`RETROACTIVE_AFTER_GRACE` also records zero before the threshold. If principal
+from the lot is still outstanding when the threshold is reached, that
+threshold calculation catches up each still-outstanding closing balance from
+`D` through `D + G - 1`, then includes the threshold day normally. Immutable
+components identify every caught-up date, source lot, remaining principal, and
+effective rate. A fully repaid lot before threshold has no catch-up.
+
+The source-date policy snapshots the lot's grace rules. The policy effective
+on each interest date supplies that date's rate and enabled state. Later policy
+changes never rewrite posted evidence.
+
+## Disabled and inactive states
+
+An effective disabled policy records a zero-raw calculation for the date and
+does not remove historical interest due. Inactive customers and accounts
+cannot receive normal new fuel postings, but existing unpaid principal keeps
+accruing when policy permits.
+
+## Fractional paise and posting
+
+Each account/date records raw interest, cumulative exact interest, and
+opening/closing fractional carry:
+
+```text
+cumulative target = round(cumulative exact interest)
+whole paise to post = cumulative target - cumulative paise already posted
+closing carry = cumulative exact interest - cumulative target
+```
+
+PostgreSQL `round(NUMERIC)` is half away from zero. Interest is non-negative,
+so this is ordinary half-up behavior. A zero-whole-paise day keeps evidence
+and carry but creates no ledger transaction or financial-success audit event.
+
+A positive amount posts:
+
+```text
+Debit  CUSTOMER_INTEREST_RECEIVABLE
+Credit INTEREST_INCOME
+```
+
+The amount never touches principal receivable, so available credit remains
+`credit limit - outstanding principal`.
+
+## Scheduling, catch-up, and replay
+
+The named pg_cron job invokes a fixed private function hourly. For each active
+station the engine converts the trusted timestamp into the station timezone
+and stops at local date minus one. Missing dates run chronologically with an
+account-level catch-up bound. `COMPLETED_WITH_REMAINING` and
+`IAC_CATCHUP_LIMIT` report unfinished work; the next cycle continues.
+
+Account/date/calculation-version uniqueness plus the shared credit-account row
+lock makes reruns safe. A processed date returns a successful no-op. Catch-up
+and uninterrupted processing preserve the same exact raw total and posted
+paise.
+
+## Java compatibility
+
+The legacy `InterestCalculator` remains non-authoritative. It uses `double`,
+rounds each date segment independently, and has no persisted policy,
+fractional-carry, scheduler, or audit model. Its event segmentation applies
+transactions before the following interval, which is directionally consistent
+with closing-principal daily treatment, but its rounding and policy semantics
+are intentionally not copied. Migration reconciliation must use approved
+PostgreSQL evidence and a governed golden corpus rather than silently treating
+the Java result as authoritative.

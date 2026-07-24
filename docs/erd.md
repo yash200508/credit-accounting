@@ -1,7 +1,7 @@
 # Entity Relationship Diagram
 
-This diagram includes the Phase 2A credit-posting and Phase 2B repayment
-entities on the Phase 1 foundation.
+This diagram includes the Phase 2A credit-posting, Phase 2B repayment, and
+Phase 2C daily-interest entities on the Phase 1 foundation.
 
 ```mermaid
 erDiagram
@@ -46,6 +46,14 @@ erDiagram
     CUSTOMER_DRIVERS ||--o{ QR_CREDENTIALS : "may own"
     ORGANIZATIONS ||--o{ INTEREST_POLICIES : defines
     CUSTOMERS o|--o{ INTEREST_POLICIES : overrides
+    STATIONS ||--o{ INTEREST_ACCRUAL_RUNS : schedules
+    INTEREST_ACCRUAL_RUNS ||--o{ INTEREST_ACCRUALS : produces
+    CREDIT_ACCOUNTS ||--o{ INTEREST_ACCRUALS : accrues
+    INTEREST_POLICIES ||--o{ INTEREST_ACCRUALS : snapshots
+    INTEREST_ACCRUALS ||--o{ INTEREST_ACCRUAL_COMPONENTS : explains
+    LEDGER_TRANSACTIONS ||--o{ INTEREST_ACCRUAL_COMPONENTS : "is principal source"
+    INTEREST_POLICIES ||--o{ INTEREST_ACCRUAL_COMPONENTS : prices
+    LEDGER_TRANSACTIONS o|--o| INTEREST_ACCRUALS : "posts positive result"
     ORGANIZATIONS ||--o{ AUDIT_EVENTS : records
     STATIONS o|--o{ AUDIT_EVENTS : contextualizes
     ORGANIZATIONS ||--o{ APP_SETTINGS : configures
@@ -59,6 +67,11 @@ erDiagram
 - A QR credential belongs to exactly one customer or one driver.
 - A customer has one credit account and one account-settings row in this initial model.
 - An interest policy with no customer is an organization default; a customer relationship makes it an override.
+- Active policy ranges cannot overlap at the same organization-default or
+  customer-override scope.
+- One calculation version exists per credit account and business date. Its
+  components preserve source lot, grace threshold, effective rate, exact raw
+  amount, and normal-versus-retroactive kind.
 - No stored balance is authoritative. Posted principal- and
   interest-receivable entries are the sources of outstanding principal and
   interest.

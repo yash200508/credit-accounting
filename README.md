@@ -13,8 +13,10 @@ A Java 17 + JavaFX desktop application for managing gas-station/customer credit 
 - A local Supabase backend under `supabase/` now includes forced RLS, atomic
   customer/account creation, idempotent fuel-credit posting, an append-only
   double-entry ledger, explicit principal/interest cash repayments, safe driver
-  attribution, ledger-derived obligations, and concurrency validation. No
-  client integration or remote deployment is implemented yet.
+  attribution, ledger-derived obligations, and exact daily simple-interest
+  accrual with immutable source evidence, station-local catch-up scheduling,
+  and concurrency validation. No client integration or remote deployment is
+  implemented yet.
 
 ## Local desktop setup
 
@@ -67,10 +69,10 @@ The installer documentation must stay aligned with the database path used by `Db
 - There is no implemented role-based login yet.
 - The JavaFX client is not yet connected to the local Supabase REST/PostgreSQL foundation.
 - There is no remote Supabase project, production database, Flutter client, Next.js dashboard, or server deployment yet.
-- The Java and local database suites cover the Phase 0/1 baseline plus the
-  Phase 2A credit posting and Phase 2B repayment/allocation slices. Automated
-  interest accrual, overpayment/customer-credit balances, payment methods
-  beyond cash, remote migration, and operational validation remain deferred.
+- The Java and local database suites cover the Phase 0/1 baseline plus Phase
+  2A credit posting, Phase 2B repayment/allocation, and Phase 2C automated
+  daily interest. Overpayment/customer-credit balances, payment methods beyond
+  cash, remote migration, and production scheduler operation remain deferred.
 - Maven builds depend on external Maven repository availability unless dependencies are cached or mirrored; see `docs/maven-build-troubleshooting.md`.
 
 ## AI Assistance Disclosure
@@ -99,8 +101,12 @@ The JavaFX/SQLite application remains unchanged while the new backend is develop
 - [`docs/repayment-allocation-workflow.md`](docs/repayment-allocation-workflow.md)
 - [`docs/architecture-decisions/0005-repayment-allocation-model.md`](docs/architecture-decisions/0005-repayment-allocation-model.md)
 - [`docs/phase-2b-validation-results.md`](docs/phase-2b-validation-results.md)
+- [`docs/daily-interest-accrual-workflow.md`](docs/daily-interest-accrual-workflow.md)
+- [`docs/phase-2c-validation-results.md`](docs/phase-2c-validation-results.md)
+- [`docs/architecture-decisions/0006-daily-simple-interest-and-grace-policy.md`](docs/architecture-decisions/0006-daily-simple-interest-and-grace-policy.md)
+- [`docs/architecture-decisions/0007-interest-rounding-and-fractional-carry.md`](docs/architecture-decisions/0007-interest-rounding-and-fractional-carry.md)
+- [`docs/architecture-decisions/0008-station-local-accrual-scheduling.md`](docs/architecture-decisions/0008-station-local-accrual-scheduling.md)
 
-Phase 2B remains local-only and does not connect to a remote Supabase project
-or migrate real customer data. It explicitly rejects overpayments, creates no
-unallocated customer credit, accepts cash only, does not calculate/accrue
-interest, and excludes interest from available-credit consumption.
+Phase 2C remains local-only and does not connect to a remote Supabase project
+or migrate real customer data. It uses a committed pg_cron registration, but
+production scheduling has not been deployed or remotely verified.

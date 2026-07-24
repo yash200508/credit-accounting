@@ -5,8 +5,8 @@
 The existing JavaFX application remains an independent offline SQLite client.
 The backend slice runs on local Supabase: PostgreSQL supplies durable data, RLS,
 and narrowly scoped database functions for atomic customer/account creation,
-fuel-credit posting, repayment posting, and authorized balance reads. No client
-is connected in Phase 2B.
+fuel-credit posting, repayment posting, daily interest accrual, and authorized
+balance reads. No client is connected in Phase 2C.
 
 ```mermaid
 flowchart LR
@@ -50,6 +50,12 @@ competing debits and credits while allowing same-key requests to wait for and
 replay the original result. Repayment recalculates principal and interest after
 the lock and rejects overpayment rather than creating unallocated credit.
 
+The private interest engine takes the same credit-account `FOR UPDATE` lock.
+It resolves effective policy history, derives FIFO remaining fuel lots from
+ledger entries, writes immutable account/day and component evidence, and posts
+only a positive whole-paise result. Normal clients and `service_role` cannot
+execute the engine or mutate its evidence.
+
 ## Data-access model
 
 - Protected tables deny anonymous access.
@@ -64,6 +70,9 @@ the lock and rejects overpayment rather than creating unallocated credit.
 - Owners and assigned managers may read repayment/allocation rows in financial
   station scope. Attendants receive the safe receipt but no broad repayment
   browse.
+- Owners may read interest runs/evidence in owned organizations; managers only
+  at assigned stations. Attendants, customers, drivers, anonymous users, and
+  `service_role` have no broad calculation-table access.
 - Role, membership, and QR mutations remain reserved for future trusted
   workflows. Audit inserts occur only inside trusted mutation functions; audit
   updates and deletes remain impossible.
@@ -80,6 +89,11 @@ accounts; total due is their sum, while available credit is the configured
 limit minus principal only. No client input or mutable cached balance is
 authoritative.
 
+Stations store canonical IANA timezones. Principal-affecting transactions
+capture an immutable station-local business date. A named hourly pg_cron job
+invokes a fixed private entry point; each station processes only through its
+last completed local date, with bounded chronological catch-up.
+
 ## Audit and secrets
 
 Audit rows have no update or delete path and a trigger rejects mutation even for accidental privileged writes. Audit JSON must be deliberately minimized and must never include passwords, JWTs, QR tokens, service-role keys, or unnecessary personal data.
@@ -88,7 +102,7 @@ QR payloads contain only a high-entropy opaque token. The database stores its on
 
 ## Deployment boundaries
 
-Phase 2B runs only against the local Supabase containers. Future environments
+Phase 2C runs only against the local Supabase containers. Future environments
 will use separate Supabase projects, migrations promoted through CI/CD,
 environment-specific public URLs/anon keys, and server-only service
 credentials. Browser/mobile clients must never contain the service-role key.
@@ -96,7 +110,7 @@ credentials. Browser/mobile clients must never contain the service-role key.
 ## Deliberate exclusions
 
 No Flutter/Next.js work, QR resolution, customer or driver posting authority,
-automated interest calculation/accrual, production interest-charge RPC,
+client-facing interest-charge RPC,
 overpayment/customer credit, non-cash method, refund, reversal, real-data
 import, remote project, inventory, pump/nozzle, cash reconciliation, or
-attendance implementation is part of Phase 2B.
+attendance implementation is part of Phase 2C.

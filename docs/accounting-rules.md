@@ -42,10 +42,10 @@ Cached balances may be added later only if:
 - Each posted business transaction has equal debit and credit totals.
 - A fuel-credit sale has exactly two equal legs: debit customer accounts
   receivable and credit fuel-sales revenue.
-- A historical interest charge has exactly two equal legs: debit customer
-  interest receivable and credit interest income. Phase 2B uses this shape only
-  for privileged deterministic test fixtures and exposes no production charge
-  function.
+- An engine-created interest charge has exactly two equal legs: debit customer
+  interest receivable and credit interest income. The private Phase 2C engine
+  is the only production path; no normal client can choose codes, rate, policy,
+  amount, or accrual date.
 - A principal-only repayment debits cash on hand and credits customer accounts
   receivable by the same amount.
 - An interest-only repayment debits cash on hand and credits customer interest
@@ -67,6 +67,12 @@ Cached balances may be added later only if:
 - A successful posting writes an immutable audit event in the same transaction.
 - Money parameters are validated as integral paise before a checked cast to
   `BIGINT`; arithmetic uses `NUMERIC` intermediates where overflow is possible.
+- Daily interest is simple interest on FIFO-derived remaining fuel principal
+  only. Exact fractional paise carry forward; `round(NUMERIC)` applies half
+  away from zero only at the account/day posting boundary.
+- Positive daily interest debits `CUSTOMER_INTEREST_RECEIVABLE` and credits
+  `INTEREST_INCOME`. Zero-whole-paise days retain calculation evidence without
+  creating financial entries or a success audit.
 
 ## Existing Java behavior to preserve or resolve
 
@@ -82,10 +88,10 @@ Before migration, define how legacy VOID records become append-only reversals
 without rewriting history. Overpayments are rejected in Phase 2B; unallocated
 customer credit is not represented.
 
-## Phase 2B exclusions
+## Phase 2C exclusions
 
-Automated interest calculation, grace-policy execution, accrual scheduling,
-compounding, a production interest-charge function, overpayment balances,
+Compounding, client-created interest, alternative day-count bases,
+overpayment balances,
 unallocated customer credit, non-cash methods, refunds, reversals,
 price/litre/pump/nozzle capture, inventory movement, cash reconciliation, and
 legacy-data migration are not implemented. Reversal remains a required

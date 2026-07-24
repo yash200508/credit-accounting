@@ -19,6 +19,8 @@ All permissions are bounded by active membership and the caller's organization o
 | Attribute physical payer driver | Valid active linked driver only | Valid active linked driver only | Valid active linked driver only | No | No authority | No |
 | Read calculated obligations | Owned tenant | Assigned station | Exact account in assigned station | Own account | No | No |
 | Read ledger/sales/repayments | Owned tenant | Assigned station | No broad read | No direct financial-table read | No | No |
+| Read interest runs/calculations | Owned tenant | Assigned station | No | No raw evidence | No | No |
+| Trigger global/daily accrual | No client capability | No client capability | No | No | No | No |
 | Mutate posted financial records | Never | Never | Never | Never | Never | Never |
 | Read audit events | Owned organization | Assigned-station events | No | No | No | No |
 | Update/delete audit events | Never | Never | Never | Never | Never | Never |
@@ -44,3 +46,8 @@ create customers or browse customer/account/ledger/repayment tables.
 driver ID identifies only who physically delivered cash; it must belong to the
 target customer and tenant, be active, and have a currently valid permission.
 It never authorizes the caller and never creates a driver account or balance.
+
+Interest execution is not a user capability. The internal scheduler calls only
+the fixed `app_private.run_hourly_interest_accrual()` entry point. Even owner
+and manager roles are read-only for run and calculation evidence; catch-up is
+an operator-controlled private path.

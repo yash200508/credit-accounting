@@ -16,9 +16,12 @@
    schema, and policy issues.
 6. **Legacy regression:** Maven `clean verify` must continue to pass all 37 Java
    tests.
-7. **Concurrency:** separate-session Python harnesses race credit posting and
-   repayment calls against the same locked account rows and verify both final
-   balances and absence of losing partial effects.
+7. **Concurrency:** separate-session Python harnesses race credit posting,
+   repayment, and interest calls against the same locked account rows and
+   verify final balances and absence of losing partial effects.
+8. **Scheduler registration:** a dedicated local check verifies the extension,
+   single named job, hourly expression, fixed command, lack of secrets, and
+   privilege revocations. It does not claim wall-clock cron execution.
 
 ## Deterministic contexts
 
@@ -35,6 +38,11 @@ driver, manager, and attendant scenarios. Historical interest is inserted only
 by privileged test setup as a balanced receivable/income charge; no client
 interest-charge RPC exists. An expired linked driver is created inside the test
 transaction so the original Phase 1 seed cardinality remains stable.
+
+Phase 2C extends the seed with canonical station timezones and effective policy
+examples. `004_daily_interest_accrual_test.sql` creates its financial fixtures
+inside a rolled-back transaction to preserve the pre-existing empty-ledger
+baseline.
 
 ## Phase 2A posting coverage
 
@@ -77,6 +85,25 @@ transaction open, and concurrently revokes the driver. The repayment's
 post-lock `FOR SHARE` locks make the revocation wait; the posting transaction
 still observes `ACTIVE` through commit, after which revocation succeeds.
 
+## Phase 2C interest coverage
+
+`004_daily_interest_accrual_test.sql` adds 159 assertions, bringing the suite
+to 447. It covers schema and forced RLS, client denial, cron registration,
+default/override/effective policy resolution, both grace variants, FIFO
+partial and multi-lot repayments, same-day closing principal, exact `NUMERIC`
+arithmetic, fractional carry, half-away rounding, zero-post evidence,
+overflow, rate changes, disabled periods, inactive debt, leap day, balanced
+interest accounting, derived balances, replay, immutable evidence,
+station-local boundaries, bounded catch-up, catch-up equivalence, safe failed
+runs, role-scoped reads, and regression interfaces.
+
+`phase_2c_interest_accrual_concurrency.py` uses independent PostgreSQL
+sessions. It proves one of two same-account/date workers creates the
+calculation while the other returns a no-op; accrual waiting behind a same-day
+INR 700 principal repayment uses the INR 300 closing balance; and accrual
+waiting behind a fuel purchase sees the complete ledger state while respecting
+the new lot's independent grace threshold.
+
 ## Minimum RLS cases
 
 - Every protected table has RLS enabled and forced.
@@ -101,7 +128,7 @@ deny-all configuration is also visible.
 ## CI
 
 Maven and Supabase validations run as separate workflows. Supabase CI pins CLI
-2.109.1, starts the local stack, performs a clean reset, runs all pgTAP tests,
-both concurrency harnesses, lint, and repository hygiene, captures local
-service logs after failure, and always stops containers. It uses no remote
-Supabase token or project reference.
+2.109.1, starts the local stack, performs a clean reset, runs all 447 pgTAP
+assertions, all three concurrency harnesses, the scheduler registration check,
+lint, and repository hygiene, captures local service logs after failure, and
+always stops containers. It uses no remote Supabase token or project reference.
