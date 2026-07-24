@@ -340,6 +340,7 @@ begin
     sha256(
       convert_to(
         jsonb_build_object(
+          'organization_id', target_organization_id,
           'credit_account_id', p_credit_account_id,
           'station_id', p_station_id,
           'total_amount_paise', checked_total_amount_paise,
@@ -518,7 +519,7 @@ begin
      and permission.customer_id = driver.customer_id
      and permission.organization_id = driver.organization_id
     where driver.id = p_payer_driver_id
-    for key share of driver, permission;
+    for share of driver, permission;
 
     if not found
        or driver_organization_id <> target_organization_id

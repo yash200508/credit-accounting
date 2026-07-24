@@ -154,6 +154,10 @@ begin
         account.home_station_id is not null
         and app_private.is_station_manager(account.home_station_id)
       )
+      or (
+        account.home_station_id is not null
+        and app_private.is_station_attendant(account.home_station_id)
+      )
       or app_private.is_customer(account.customer_id)
     );
 

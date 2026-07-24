@@ -463,11 +463,172 @@ from app_private.calculate_credit_account_obligations(
         )
 
 
+def prove_driver_revocation_serialization(
+    container: str,
+    run_id: uuid.UUID,
+) -> None:
+    account_id = create_account(container, run_id, "DriverRace", 100_000)
+    driver_id = uuid.uuid4()
+    initial_key = uuid.uuid4()
+    repayment_key = uuid.uuid4()
+    reference_prefix = run_id.hex[20:32].upper()
+    phone_suffix = str((run_id.int + 97) % 100_000_000_000).zfill(11)
+
+    create_driver_sql = f"""
+with target_account as (
+  select customer_id, organization_id
+  from public.credit_accounts
+  where id = '{account_id}'
+)
+insert into public.customer_drivers (
+  id,
+  organization_id,
+  customer_id,
+  auth_user_id,
+  first_name,
+  last_name,
+  phone,
+  status,
+  created_by,
+  updated_by
+)
+select
+  '{driver_id}',
+  target_account.organization_id,
+  target_account.customer_id,
+  null,
+  'Concurrency',
+  'Driver',
+  '+1777{phone_suffix}',
+  'ACTIVE',
+  '{OWNER_ID}',
+  '{OWNER_ID}'
+from target_account;
+
+insert into public.driver_permissions (
+  driver_id,
+  customer_id,
+  organization_id,
+  transaction_limit_paise,
+  daily_limit_paise,
+  valid_from,
+  expires_on,
+  created_by,
+  updated_by
+)
+select
+  driver.id,
+  driver.customer_id,
+  driver.organization_id,
+  null,
+  null,
+  current_date,
+  '2099-12-31',
+  '{OWNER_ID}',
+  '{OWNER_ID}'
+from public.customer_drivers as driver
+where driver.id = '{driver_id}';
+"""
+    execute(container, create_driver_sql, "driver-race fixture creation")
+    post_initial_principal(
+        container,
+        account_id,
+        50_000,
+        initial_key,
+        f"DRV-INITIAL-{reference_prefix}",
+    )
+
+    repayment_sql = authenticated_sql(
+        f"""
+select 'DRIVER_REPAYMENT_SUCCESS|' || transaction_id::text
+from public.post_customer_repayment(
+  '{account_id}',
+  '{STATION_ID}',
+  10000,
+  'PRINCIPAL_ONLY',
+  '{repayment_key}',
+  null,
+  null,
+  '{driver_id}',
+  'DRV-RPP-{reference_prefix}'
+);
+select pg_sleep(3);
+select 'STATUS_BEFORE_COMMIT|' || status::text
+from public.customer_drivers
+where id = '{driver_id}';
+"""
+    )
+    revocation_sql = f"""
+begin;
+update public.customer_drivers
+set
+  status = 'REVOKED',
+  updated_by = '{OWNER_ID}'
+where id = '{driver_id}'
+returning 'REVOCATION_SUCCESS|' || status::text;
+commit;
+"""
+    repayment, revocation = run_concurrently(
+        container,
+        repayment_sql,
+        revocation_sql,
+    )
+    repayment_code, repayment_out, repayment_error = repayment
+    revocation_code, revocation_out, revocation_error = revocation
+    if (
+        repayment_code != 0
+        or "DRIVER_REPAYMENT_SUCCESS|" not in repayment_out
+        or "STATUS_BEFORE_COMMIT|ACTIVE" not in repayment_out
+    ):
+        raise HarnessFailure(
+            "driver repayment did not retain active attribution through commit: "
+            f"stdout={repayment_out.strip()!r} "
+            f"stderr={repayment_error.strip()!r}"
+        )
+    if revocation_code != 0 or "REVOCATION_SUCCESS|REVOKED" not in revocation_out:
+        raise HarnessFailure(
+            "driver revocation did not commit after the repayment: "
+            f"stdout={revocation_out.strip()!r} "
+            f"stderr={revocation_error.strip()!r}"
+        )
+
+    validation_sql = f"""
+select concat_ws(
+  '|',
+  driver.status,
+  repayment.payer_type,
+  repayment.payer_driver_id,
+  obligations.outstanding_principal_paise,
+  obligations.available_credit_paise
+)
+from public.customer_drivers as driver
+join public.customer_repayments as repayment
+  on repayment.payer_driver_id = driver.id
+cross join app_private.calculate_credit_account_obligations(
+  '{account_id}'
+) as obligations
+where driver.id = '{driver_id}'
+  and repayment.credit_account_id = '{account_id}';
+"""
+    actual = execute(
+        container,
+        validation_sql,
+        "driver-revocation validation",
+    ).strip().splitlines()[-1]
+    expected = f"REVOKED|DRIVER|{driver_id}|40000|60000"
+    if actual != expected:
+        raise HarnessFailure(
+            "driver-revocation invariant mismatch; expected "
+            f"{expected!r}, received {actual!r}"
+        )
+
+
 def main() -> int:
     container = database_container()
     run_id = uuid.uuid4()
     prove_competing_repayments(container, run_id)
     prove_fuel_repayment_serialization(container, run_id)
+    prove_driver_revocation_serialization(container, run_id)
     print(
         "PASS: competing INR 700 repayments against INR 1,000 principal "
         "produced one success, one RPP_PRINCIPAL_EXCEEDS_DUE failure, "
@@ -477,6 +638,11 @@ def main() -> int:
         "PASS: a repayment holding the account lock serialized a concurrent "
         "fuel-credit post; both committed in order with INR 900 principal "
         "and INR 100 available credit."
+    )
+    print(
+        "PASS: driver attribution held share locks through commit, so a "
+        "concurrent non-key status revocation waited and could not invalidate "
+        "the posted repayment mid-transaction."
     )
     return 0
 

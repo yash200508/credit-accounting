@@ -146,8 +146,18 @@ select ok(
     'anon',
     'public.get_credit_account_obligations(uuid)',
     'execute'
+  )
+  and not has_function_privilege(
+    'service_role',
+    'public.post_customer_repayment(uuid,uuid,numeric,text,uuid,numeric,numeric,uuid,text,text)',
+    'execute'
+  )
+  and not has_function_privilege(
+    'service_role',
+    'public.get_credit_account_obligations(uuid)',
+    'execute'
   ),
-  'repayment and obligations RPCs are authenticated-only'
+  'repayment and obligations RPCs are authenticated-only, including no service-role bypass'
 );
 
 select ok(
@@ -2171,15 +2181,26 @@ select set_config(
 );
 select set_config('request.jwt.claim.role', 'authenticated', true);
 
+select is(
+  (
+    select total_due_paise
+    from public.get_credit_account_obligations(
+      'e3000000-0000-0000-0000-000000000003'
+    )
+  ),
+  100000::bigint,
+  'assigned attendant can read exact account obligations before posting'
+);
+
 select throws_ok(
   $$
     select * from public.get_credit_account_obligations(
-      'e3000000-0000-0000-0000-000000000003'
+      'a3000000-0000-0000-0000-000000000002'
     )
   $$,
   'P0001',
   'BAL_ACCOUNT_NOT_FOUND_OR_FORBIDDEN',
-  'attendant cannot broadly query customer obligations'
+  'attendant cannot read obligations outside the assigned station'
 );
 
 select ok(
