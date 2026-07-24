@@ -12,8 +12,9 @@ A Java 17 + JavaFX desktop application for managing gas-station/customer credit 
 - Packaging scripts: `build-app-image.bat` and `build-installer.bat` for Windows app image/MSI packaging.
 - A local Supabase backend under `supabase/` now includes forced RLS, atomic
   customer/account creation, idempotent fuel-credit posting, an append-only
-  double-entry ledger, and concurrency validation. No client integration or
-  remote deployment is implemented yet.
+  double-entry ledger, explicit principal/interest cash repayments, safe driver
+  attribution, ledger-derived obligations, and concurrency validation. No
+  client integration or remote deployment is implemented yet.
 
 ## Local desktop setup
 
@@ -67,8 +68,9 @@ The installer documentation must stay aligned with the database path used by `Db
 - The JavaFX client is not yet connected to the local Supabase REST/PostgreSQL foundation.
 - There is no remote Supabase project, production database, Flutter client, Next.js dashboard, or server deployment yet.
 - The Java and local database suites cover the Phase 0/1 baseline plus the
-  Phase 2A posting, idempotency, accounting, and concurrent credit-limit slice.
-  Remote/production migration and operational validation remain deferred.
+  Phase 2A credit posting and Phase 2B repayment/allocation slices. Automated
+  interest accrual, overpayment/customer-credit balances, payment methods
+  beyond cash, remote migration, and operational validation remain deferred.
 - Maven builds depend on external Maven repository availability unless dependencies are cached or mirrored; see `docs/maven-build-troubleshooting.md`.
 
 ## AI Assistance Disclosure
@@ -94,6 +96,11 @@ The JavaFX/SQLite application remains unchanged while the new backend is develop
 - [`docs/credit-posting-workflow.md`](docs/credit-posting-workflow.md)
 - [`docs/architecture-decisions/0003-trusted-financial-posting-functions.md`](docs/architecture-decisions/0003-trusted-financial-posting-functions.md)
 - [`docs/architecture-decisions/0004-ledger-and-idempotency-model.md`](docs/architecture-decisions/0004-ledger-and-idempotency-model.md)
+- [`docs/repayment-allocation-workflow.md`](docs/repayment-allocation-workflow.md)
+- [`docs/architecture-decisions/0005-repayment-allocation-model.md`](docs/architecture-decisions/0005-repayment-allocation-model.md)
+- [`docs/phase-2b-validation-results.md`](docs/phase-2b-validation-results.md)
 
-Phase 2A remains local-only and does not connect to a remote Supabase project
-or migrate real customer data.
+Phase 2B remains local-only and does not connect to a remote Supabase project
+or migrate real customer data. It explicitly rejects overpayments, creates no
+unallocated customer credit, accepts cash only, does not calculate/accrue
+interest, and excludes interest from available-credit consumption.

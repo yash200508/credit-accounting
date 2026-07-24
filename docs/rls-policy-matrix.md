@@ -24,6 +24,8 @@ Every table below has RLS enabled and forced. `anon` receives no table or functi
 | `ledger_entries` | Read owned tenant | Read entries for assigned-station transactions | Denied | Denied | Denied | None; trusted function only |
 | `fuel_credit_sales` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
 | `idempotency_keys` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
+| `customer_repayments` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted function only |
+| `repayment_allocations` | Read allocations for readable repayments | Read allocations for assigned-station repayments | Denied | Denied | Denied | None; trusted function only |
 
 ## Privileged helpers
 
@@ -34,12 +36,22 @@ Data-returning privileged functions are deliberately narrow:
 - `get_my_driver_parent_account()` returns the existing driver projection.
 - `get_credit_account_balance(account_id)` returns an authorized account's
   limit, principal, and available credit.
+- `get_credit_account_obligations(account_id)` additively returns authorized
+  principal, interest, total due, and available credit without breaking the
+  Phase 2A interface.
 - `create_customer_with_credit_account(...)` returns identifiers and safe
   account configuration after an atomic create.
 - `post_fuel_credit_transaction(...)` returns the original or newly committed
   safe receipt.
+- `post_customer_repayment(...)` returns the original or newly committed safe
+  repayment receipt after explicit allocation and optional driver validation.
 
-Only the latter two mutate data. `PUBLIC` and `anon` execution are revoked.
+Only the two posting functions and customer/account creation mutate data.
+`PUBLIC` and `anon` execution are revoked. The application-facing functions are
+granted only to `authenticated`; private calculators and authorization helpers
+are not client-callable. Phase 2B also explicitly revokes generated
+`service_role` table access and function execution for its financial objects,
+matching the Phase 2A raw-write boundary.
 
 ## Policy rules
 
@@ -47,6 +59,8 @@ Only the latter two mutate data. `PUBLIC` and `anon` execution are revoked.
 - Revoked membership, inactive organization/station, inactive customer, or revoked driver status removes applicable access.
 - Composite tenant/station foreign keys prevent spoofed cross-organization relationships independently of RLS.
 - Direct client writes to role, membership, customer, account, product, ledger,
-  sale, idempotency, driver, QR, interest, and audit tables are denied.
-- Posted transaction, entry, and sale updates/deletes are also rejected by
-  triggers; RLS and grants are not the only immutability boundary.
+  sale, repayment, allocation, idempotency, driver, QR, interest, and audit
+  tables are denied.
+- Posted transaction, entry, sale, repayment, and allocation updates/deletes
+  are also rejected by triggers; RLS and grants are not the only immutability
+  boundary.

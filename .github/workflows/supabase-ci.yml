@@ -52,6 +52,9 @@ jobs:
       - name: Prove concurrent credit-limit safety
         run: python supabase/tests/concurrency/phase_2a_credit_limit_concurrency.py
 
+      - name: Prove concurrent repayment safety
+        run: python supabase/tests/concurrency/phase_2b_repayment_concurrency.py
+
       - name: Lint public and private application schemas
         run: >-
           npx --yes supabase@${SUPABASE_CLI_VERSION} db lint --local
