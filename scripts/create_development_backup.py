@@ -14,6 +14,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from phase_2e_target_safety import (
+    TargetSafetyFailure,
+    npx_executable,
+    verify_local_link,
+    verify_postgres_environment,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI_VERSION = "2.109.1"
@@ -56,7 +63,14 @@ def run(command: list[str], *, timeout: int = 180) -> subprocess.CompletedProces
 
 def cli_json(*arguments: str) -> Any:
     result = run(
-        ["npx", "--yes", f"supabase@{CLI_VERSION}", *arguments, "--output", "json"],
+        [
+            npx_executable(),
+            "--yes",
+            f"supabase@{CLI_VERSION}",
+            *arguments,
+            "--output",
+            "json",
+        ],
         timeout=60,
     )
     if result.returncode != 0:
@@ -209,6 +223,8 @@ def main() -> int:
         project_ref = required_env("SUPABASE_PROJECT_ID")
         expected_region = required_env("SUPABASE_EXPECTED_REGION")
         verify_target(project_ref, expected_region)
+        verify_local_link(ROOT, project_ref)
+        verify_postgres_environment(project_ref)
         users = fake_auth_users()
 
         stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -245,7 +261,9 @@ def main() -> int:
                 data,
             ),
         ):
-            result = run(["npx", "--yes", f"supabase@{CLI_VERSION}", *arguments])
+            result = run(
+                [npx_executable(), "--yes", f"supabase@{CLI_VERSION}", *arguments]
+            )
             if result.returncode != 0 or not target.exists():
                 raise BackupFailure(f"logical dump failed: {target.name}")
 
@@ -287,7 +305,12 @@ def main() -> int:
             f"manifest={manifest_path}; checksum={sha256(manifest_path)}"
         )
         return 0
-    except (BackupFailure, OSError, subprocess.TimeoutExpired) as exc:
+    except (
+        BackupFailure,
+        OSError,
+        subprocess.TimeoutExpired,
+        TargetSafetyFailure,
+    ) as exc:
         print(f"FAIL: development logical backup: {exc}", file=sys.stderr)
         return 1
 

@@ -9,6 +9,10 @@
       not touched.
 - [ ] `development` is the only remote GitHub Environment.
 - [ ] Workflow is manual, main-only, exact-SHA, ancestor-checked, and locked.
+- [ ] CODEOWNERS review covers workflows, migrations, and hosted configuration;
+      branch/environment protection enforces review where the plan supports it.
+- [ ] Management project identity, ignored CLI link, and TLS PostgreSQL
+      host/user all resolve to the same approved project before a write or dump.
 - [ ] No `pull_request_target`, PR secrets, mutable action tag, remote reset,
       hosted restore, or production workflow exists.
 

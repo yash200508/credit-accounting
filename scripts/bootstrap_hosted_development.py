@@ -20,6 +20,13 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from phase_2e_target_safety import (
+    TargetSafetyFailure,
+    npx_executable,
+    verify_local_link,
+    verify_postgres_environment,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI_VERSION = "2.109.1"
@@ -50,7 +57,14 @@ def required_env(name: str) -> str:
 
 def cli(*arguments: str) -> Any:
     result = subprocess.run(
-        ["npx", "--yes", f"supabase@{CLI_VERSION}", *arguments, "--output", "json"],
+        [
+            npx_executable(),
+            "--yes",
+            f"supabase@{CLI_VERSION}",
+            *arguments,
+            "--output",
+            "json",
+        ],
         cwd=ROOT,
         check=False,
         capture_output=True,
@@ -294,6 +308,8 @@ def main() -> int:
         project_ref = required_env("SUPABASE_PROJECT_ID")
         expected_region = required_env("SUPABASE_EXPECTED_REGION")
         verify_project(project_ref, expected_region)
+        verify_local_link(ROOT, project_ref)
+        verify_postgres_environment(project_ref)
         secret_key = project_secret(project_ref)
         users = create_users(project_ref, secret_key)
         write_state(users)
@@ -303,7 +319,13 @@ def main() -> int:
             "deterministic application fixtures; credentials remain in ignored local state."
         )
         return 0
-    except (BootstrapFailure, KeyError, OSError, subprocess.TimeoutExpired) as exc:
+    except (
+        BootstrapFailure,
+        KeyError,
+        OSError,
+        subprocess.TimeoutExpired,
+        TargetSafetyFailure,
+    ) as exc:
         print(f"FAIL: hosted development bootstrap: {exc}", file=sys.stderr)
         return 1
 

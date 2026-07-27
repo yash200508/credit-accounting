@@ -12,8 +12,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from pathlib import Path
+
+from phase_2e_target_safety import TargetSafetyFailure, npx_executable
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -92,7 +95,9 @@ def copy_repository(destination: Path) -> None:
 
 def isolate_config(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
-    project_id = f"credit-accounting-phase2e-restore-{uuid.uuid4().hex[:8]}"
+    # Keep the ID below Docker Compose's project-name truncation boundary so
+    # exact container discovery remains portable.
+    project_id = f"ca-phase2e-restore-{uuid.uuid4().hex[:8]}"
     text = re.sub(
         r'^project_id\s*=\s*"[^"]+"',
         f'project_id = "{project_id}"',
@@ -116,28 +121,30 @@ def isolate_config(path: Path) -> str:
 
 
 def database_container(project_id: str) -> str:
-    result = subprocess.run(
-        [
-            "docker",
-            "ps",
-            "--filter",
-            f"label=com.supabase.cli.project={project_id}",
-            "--format",
-            "{{.Names}}",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-    candidates = [
-        item.strip()
-        for item in result.stdout.splitlines()
-        if item.strip().startswith("supabase_db_")
-    ]
-    if result.returncode != 0 or len(candidates) != 1:
-        raise RestoreFailure("disposable local database container was not found")
-    return candidates[0]
+    expected_name = f"supabase_db_{project_id}"
+    for attempt in range(10):
+        result = subprocess.run(
+            [
+                "docker",
+                "ps",
+                "--format",
+                "{{.Names}}",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        candidates = [
+            item.strip()
+            for item in result.stdout.splitlines()
+            if item.strip() == expected_name
+        ]
+        if result.returncode == 0 and len(candidates) == 1:
+            return candidates[0]
+        if attempt < 9:
+            time.sleep(1)
+    raise RestoreFailure("disposable local database container was not found")
 
 
 def apply_sql(container: str, path: Path, cwd: Path) -> None:
@@ -174,21 +181,30 @@ def main() -> int:
     work_root = Path(tempfile.mkdtemp(prefix="phase2e-restore-"))
     repository = work_root / "credit-accounting-restore"
     start_attempted = False
+    npx = ""
     try:
         verify_backup(backup)
         copy_repository(repository)
         project_id = isolate_config(repository / "supabase" / "config.toml")
+        npx = npx_executable()
 
         start_attempted = True
         start = run(
-            ["npx", "--yes", f"supabase@{CLI_VERSION}", "start"],
+            [npx, "--yes", f"supabase@{CLI_VERSION}", "start"],
             cwd=repository,
             timeout=300,
         )
         if start.returncode != 0:
             raise RestoreFailure("disposable local Supabase start failed")
         reset = run(
-            ["npx", "--yes", f"supabase@{CLI_VERSION}", "db", "reset", "--local"],
+            [
+                npx,
+                "--yes",
+                f"supabase@{CLI_VERSION}",
+                "db",
+                "reset",
+                "--local",
+            ],
             cwd=repository,
             timeout=300,
         )
@@ -244,14 +260,19 @@ delete from auth.users;
             "triggers, ledger, interest, correction evidence, and cron reconciled."
         )
         return 0
-    except (OSError, RestoreFailure, subprocess.TimeoutExpired) as exc:
+    except (
+        OSError,
+        RestoreFailure,
+        subprocess.TimeoutExpired,
+        TargetSafetyFailure,
+    ) as exc:
         print(f"FAIL: disposable local restore rehearsal: {exc}", file=sys.stderr)
         return 1
     finally:
-        if start_attempted:
+        if start_attempted and npx:
             run(
                 [
-                    "npx",
+                    npx,
                     "--yes",
                     f"supabase@{CLI_VERSION}",
                     "stop",

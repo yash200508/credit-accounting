@@ -20,13 +20,15 @@ python scripts/create_development_backup.py
 The script:
 
 1. Re-verifies exact project name and approved region.
-2. Rejects any Auth email outside the fake reserved domain.
-3. Runs pinned `supabase db dump --linked` separately for schema and
+2. Proves the ignored local CLI link and TLS PostgreSQL host/user identify the
+   same approved project; any mismatch fails closed before inspection or dump.
+3. Rejects any Auth email outside the fake reserved domain.
+4. Runs pinned `supabase db dump --linked` separately for schema and
    application data.
-4. Creates non-login fake Auth stubs with null password hashes.
-5. Scans for tokens, keys, credentialed URLs, non-fake emails, and unexpected
+5. Creates non-login fake Auth stubs with null password hashes.
+6. Scans for tokens, keys, credentialed URLs, non-fake emails, and unexpected
    phone-shaped data.
-6. Writes `.local-backups/<UTC>-credit-accounting-development/manifest.json`
+7. Writes `.local-backups/<UTC>-credit-accounting-development/manifest.json`
    with migration head, CLI version, sizes, and per-file SHA-256 checksums.
 
 The directory is ignored by Git and repository hygiene rejects tracked backup

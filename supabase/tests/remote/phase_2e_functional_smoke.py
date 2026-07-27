@@ -16,6 +16,16 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from phase_2e_target_safety import (  # noqa: E402
+    TargetSafetyFailure,
+    npx_executable,
+    verify_cli_project,
+    verify_local_link,
+    verify_postgres_environment,
+)
+
 STATE_FILE = ROOT / ".local-state" / "phase-2e-auth.json"
 CLI_VERSION = "2.109.1"
 STATION_ID = "e1000000-0000-0000-0000-000000000001"
@@ -36,7 +46,7 @@ def required_env(name: str) -> str:
 def api_keys(project_ref: str) -> list[dict[str, Any]]:
     result = subprocess.run(
         [
-            "npx",
+            npx_executable(),
             "--yes",
             f"supabase@{CLI_VERSION}",
             "projects",
@@ -252,6 +262,10 @@ def one(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
 def main() -> int:
     try:
         project_ref = required_env("SUPABASE_PROJECT_ID")
+        expected_region = required_env("SUPABASE_EXPECTED_REGION")
+        verify_cli_project(ROOT, project_ref, expected_region)
+        verify_local_link(ROOT, project_ref)
+        verify_postgres_environment(project_ref)
         key = publishable_key(project_ref)
         credentials = load_credentials()
         api = HostedApi(project_ref, key)
@@ -605,7 +619,13 @@ def main() -> int:
             "maker-checker correction, exact reversal, isolation, and raw-write denial."
         )
         return 0
-    except (SmokeFailure, KeyError, OSError, subprocess.TimeoutExpired) as exc:
+    except (
+        SmokeFailure,
+        KeyError,
+        OSError,
+        subprocess.TimeoutExpired,
+        TargetSafetyFailure,
+    ) as exc:
         print(f"FAIL: hosted functional smoke: {exc}", file=sys.stderr)
         return 1
 

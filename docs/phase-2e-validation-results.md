@@ -68,8 +68,8 @@ skipped result is never a pass.
 | Cron registration | Pending hosted verification |
 | Actual wall-clock cron execution | Unverified |
 | Logical backup and manifest checksum | Pending |
-| Disposable local restore/reconciliation | Pending |
-| Final complete local suite | Pending after repository changes |
+| Disposable local restore/reconciliation | PASS with synthetic fake-only local dump; hosted-origin backup remains pending |
+| Final complete local suite | PASS after final repository changes |
 
 ## Local repository-control validation
 
@@ -77,7 +77,51 @@ skipped result is never a pass.
 - Hosted catalog SQL: PASS against the current local migrated schema.
 - Remote-capable Phase 2A concurrency harness: PASS in local mode.
 - Python syntax compilation: PASS.
-- Repository hygiene and `git diff --check`: PASS during implementation.
+- Target-binding helper: PASS for direct and pooler forms; mismatched
+  PostgreSQL and local-link targets fail closed.
+- Logical backup format: PASS using a fake-only local schema/data dump,
+  sanitized Auth stubs, manifest checksums, and disposable restore.
+- Restore reconciliation: PASS for migration head, schema, RLS, grants,
+  functions, triggers, ledger, interest, correction evidence, and cron.
+- Cross-platform CLI execution: PASS after resolving `npx`/`npx.cmd`
+  explicitly.
+- Workflow YAML parse: PASS.
+- Repository hygiene: PASS across 174 tracked/untracked non-ignored files.
+- `git diff --check`: PASS.
+
+## Final local regression
+
+| Check | Result |
+|---|---|
+| Maven clean verify | PASS, 37/37 |
+| Local reset with normal seed | PASS |
+| pgTAP | PASS, 567/567 |
+| Phase 2A concurrency | PASS |
+| Phase 2B concurrency | PASS |
+| Phase 2C concurrency | PASS |
+| Phase 2D concurrency | PASS |
+| Scheduler registration | PASS |
+| Wall-clock scheduler | Not exercised |
+| Database lint | PASS, no schema errors |
+| Catalog/RLS/grant/function/cron validation | PASS |
+| Sanitized operations queries | PASS |
+| Phase 2E migration preflight | PASS, 24 immutable migrations |
+
+## Internal review result
+
+The pre-landing and security fallback review found and fixed:
+
+1. Hosted scripts now bind the exact Management/CLI project, ignored local
+   link, and TLS PostgreSQL host/user before any write or dump.
+2. Python scripts resolve the platform-specific `npx` executable, including
+   Windows `npx.cmd`.
+3. Closed-Auth verification rejects every enabled external provider except
+   email instead of relying on a fixed provider list.
+4. CODEOWNERS covers workflows, migrations, and hosted configuration.
+
+No unresolved critical or high-confidence security finding remains in the
+Phase 2E diff. Hosted advisors, live configuration, and external-state checks
+remain pending and cannot be inferred from local evidence.
 
 ## Known limitations
 

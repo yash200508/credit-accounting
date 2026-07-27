@@ -12,28 +12,14 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from phase_2e_target_safety import TargetSafetyFailure, verify_postgres_environment
+
 
 API_ROOT = "https://api.supabase.com/v1"
-SOCIAL_PROVIDERS = (
-    "apple",
-    "azure",
-    "bitbucket",
-    "discord",
-    "facebook",
-    "figma",
-    "github",
-    "gitlab",
-    "google",
-    "keycloak",
-    "linkedin",
-    "notion",
-    "slack",
-    "spotify",
-    "twitch",
-    "twitter",
-    "workos",
-    "zoom",
-)
+ALLOWED_EXTERNAL_AUTH_KEYS = {
+    "external_email_enabled",
+    "external_anonymous_users_enabled",
+}
 
 
 class TargetFailure(RuntimeError):
@@ -93,6 +79,7 @@ def main() -> int:
         project_ref = required_env("SUPABASE_PROJECT_ID")
         expected_name = required_env("SUPABASE_EXPECTED_PROJECT_NAME")
         expected_region = required_env("SUPABASE_EXPECTED_REGION")
+        verify_postgres_environment(project_ref)
 
         projects = api_get("/projects", token)
         if not isinstance(projects, list):
@@ -133,16 +120,22 @@ def main() -> int:
 
         signup_disabled = auth.get("disable_signup") is True
         anonymous_disabled = auth.get("external_anonymous_users_enabled") is not True
-        social_enabled = [
-            provider
-            for provider in SOCIAL_PROVIDERS
-            if auth.get(f"external_{provider}_enabled") is True
-        ]
+        email_signin_enabled = auth.get("external_email_enabled") is True
+        social_enabled = sorted(
+            key.removeprefix("external_").removesuffix("_enabled")
+            for key, value in auth.items()
+            if key.startswith("external_")
+            and key.endswith("_enabled")
+            and key not in ALLOWED_EXTERNAL_AUTH_KEYS
+            and value is True
+        )
         if args.require_closed_auth:
             if not signup_disabled:
                 raise TargetFailure("public Auth signup is not disabled")
             if not anonymous_disabled:
                 raise TargetFailure("anonymous Auth sign-in is not disabled")
+            if not email_signin_enabled:
+                raise TargetFailure("email sign-in is not enabled for fake test users")
             if social_enabled:
                 raise TargetFailure(
                     "social Auth providers are enabled: " + ", ".join(social_enabled)
@@ -158,6 +151,7 @@ def main() -> int:
             "auth": {
                 "public_signup_disabled": signup_disabled,
                 "anonymous_sign_in_disabled": anonymous_disabled,
+                "email_sign_in_enabled": email_signin_enabled,
                 "social_providers_enabled": social_enabled,
             },
         }
@@ -171,7 +165,7 @@ def main() -> int:
             f"closed_auth={'verified' if args.require_closed_auth else 'reported'}."
         )
         return 0
-    except (OSError, TargetFailure) as exc:
+    except (OSError, TargetFailure, TargetSafetyFailure) as exc:
         print(f"FAIL: development target verification: {exc}", file=sys.stderr)
         return 1
 

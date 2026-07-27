@@ -57,6 +57,10 @@ The preflight scans every migration for local hosts, JWT/key/token shapes,
 credentialed database URLs, and HTTP/credentials near the cron definition. It
 proves prior migration files are unchanged from Phase 2D, required extensions
 and schemas are declared, and exactly one cron registration is committed.
+Target verification also proves the TLS PostgreSQL host/user identifies the
+same project reference that passed the exact name and region checks. Hosted
+bootstrap, functional smoke, concurrency, and backup commands separately
+recheck that binding and the ignored local CLI link before any write or dump.
 
 ## First approved deployment
 
