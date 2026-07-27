@@ -117,9 +117,32 @@ does not claim a real wall-clock cron firing.
 Before production: independent professional financial/security review,
 production secrets management, MFA/session requirements, trusted
 role/limit/product/driver-management functions, automated interest policy
-review, reversal/refund/reconciliation controls, abuse/rate controls, backup
+review, refund/reconciliation controls, abuse/rate controls, backup
 encryption and restore drills, audit retention/alerting, dependency scanning,
 statement timeouts, cash custody controls, and incident response.
 
 This threat model is an internal engineering review, not an independent
 professional financial or security audit.
+
+## Phase 2D correction threats and controls
+
+- **Unauthorized or spoofed reversal:** RPCs derive actor, tenant, station,
+  original transaction, account, amounts, ledger accounts, and timestamps.
+- **Self approval or manager escalation:** only an active organization owner
+  may execute, and requester/approver equality is rejected.
+- **Duplicate or concurrent execution:** request/account locks plus unique
+  original, request, reversal, and replacement links permit one effect.
+- **Stale preview:** approval recalculates fingerprints, dependencies,
+  proposals, and obligations after locks.
+- **Replacement scope change:** typed proposal foreign keys and deferred shape
+  guards fix organization, station, customer, and credit account.
+- **Mutable evidence:** posted ledger rows, proposals, events, and reversal
+  links reject update/delete; clients have no mutation grants.
+- **Sensitive reasons:** bounded normalized text rejects controls, email-like
+  PII, and long token-like strings; audit JSON excludes secrets and full PII.
+- **Interest corruption:** interest-charge execution is blocked until a
+  cumulative carry adjustment model is proven.
+
+Remaining operational risks include hosted-environment verification,
+rate/abuse controls, backup/restore drills, alerting, and an independent
+professional financial and security review.

@@ -49,7 +49,7 @@ Cash is the only accepted method. Automated interest calculation/accrual,
 unallocated customer credit, overpayment balances, refunds, reversals, client
 applications, and remote deployment remain deferred.
 
-## Phase 2C — current slice: automated daily simple interest
+## Phase 2C — complete: automated daily simple interest
 
 ```text
 Resolve effective policy
@@ -67,11 +67,29 @@ business dates and evidence, account-locked idempotency, and a committed
 hourly pg_cron registration. It remains local-only; production scheduling is
 not deployed or claimed.
 
+## Phase 2D — complete: governed reversals and corrections
+
+```text
+Submit typed correction with mandatory reason
+→ preview dependencies and balance impact
+→ require a different active owner
+→ append an exact current-date compensating transaction
+→ optionally post a typed corrected replacement atomically
+→ preserve immutable links, events, and audit evidence
+```
+
+Fuel sales and repayments can be reversed when their later dependencies remain
+unambiguous. Replacement posting reuses the trusted Phase 2A and 2B functions.
+Interest-charge reversal is deliberately blocked because Phase 2C has no
+append-only adjustment accumulator for cumulative posted interest and
+fractional carry. The slice remains local-only.
+
 ## Later slices
 
-1. **Next recommended slice:** append-only reversal and correction workflow.
-   Automated interest adds more financial event types whose inevitable
-   operational corrections must not rely on direct mutation.
+1. **Next recommended slice:** remote development Supabase deployment and
+   operational hardening. The largest remaining risk is proving migrations,
+   forced RLS, scheduler registration, logs, backups, and correction locking in
+   a disposable hosted development environment before adding client lookup.
 2. Customer and driver QR credential resolution with minimum account lookup.
 3. Refund and reconciliation workflows built on governed corrections.
 4. Audited owner workflows for memberships, roles, stations, customers,

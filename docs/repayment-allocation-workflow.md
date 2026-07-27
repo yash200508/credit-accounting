@@ -127,9 +127,16 @@ excess, nothing due, driver state, idempotency conflict/retry, invalid cash
 method or reference, and overflow. Internal SQL structure and stack details are
 not deliberately returned.
 
-## Deferred behavior
+## Phase 2D corrections
 
-Automated simple-interest calculation, grace-policy execution, daily accrual,
-compounding, manual production interest charging, non-cash methods,
-overpayment/customer credit, refunds, reversals, QR resolution, and client UI
-are not implemented in Phase 2B.
+An eligible repayment can now be reversed through an independently approved
+correction. The reversal exactly restores its principal and interest
+allocations. A typed replacement reuses this workflow's allocation, due,
+driver, idempotency, ledger, and audit validation.
+
+Restoration is blocked if principal would exceed the credit limit or a later
+interest calculation used the reduced principal. Reversal and replacement
+commit atomically.
+
+Compounding, manual interest charging, non-cash methods, overpayment/customer
+credit, refunds, QR resolution, and client UI remain deferred.

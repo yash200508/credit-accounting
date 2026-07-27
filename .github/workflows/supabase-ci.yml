@@ -58,6 +58,9 @@ jobs:
       - name: Prove concurrent interest-accrual safety
         run: python supabase/tests/concurrency/phase_2c_interest_accrual_concurrency.py
 
+      - name: Prove concurrent reversal and correction safety
+        run: python supabase/tests/concurrency/phase_2d_reversal_correction_concurrency.py
+
       - name: Verify controlled hourly scheduler registration
         run: python supabase/tests/scheduler/phase_2c_scheduler_registration.py
 

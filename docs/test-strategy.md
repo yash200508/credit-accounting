@@ -128,7 +128,21 @@ deny-all configuration is also visible.
 ## CI
 
 Maven and Supabase validations run as separate workflows. Supabase CI pins CLI
-2.109.1, starts the local stack, performs a clean reset, runs all 447 pgTAP
-assertions, all three concurrency harnesses, the scheduler registration check,
+2.109.1, starts the local stack, performs a clean reset, runs all 567 pgTAP
+assertions, all four concurrency harnesses, the scheduler registration check,
 lint, and repository hygiene, captures local service logs after failure, and
 always stops containers. It uses no remote Supabase token or project reference.
+
+## Phase 2D correction coverage
+
+The 120 Phase 2D assertions cover schema, forced RLS, grants, requester and
+approver authorization, reason safety, submission replay/conflict, expected
+versions, exact reversal entries, current dates, fuel and repayment dependency
+blocks, principal/interest/split replacements, rollback, terminal transitions,
+hard immutability, audit privacy, correction-aware FIFO, and explicit interest
+reversal blocking.
+
+The Phase 2D independent-session harness races two approvals, repayment
+reversal against fuel posting, fuel reversal against interest accrual, and
+approval against cancellation. It validates final ledger, obligation, event,
+replacement, idempotency, and partial-row counts.
