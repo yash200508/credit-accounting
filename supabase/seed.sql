@@ -237,7 +237,7 @@ values
     'B-CENTRAL',
     'Fixture B Central',
     '201 Example Avenue',
-    'America/Chicago',
+    'Asia/Kolkata',
     true,
     '10000000-0000-0000-0000-000000000002',
     '10000000-0000-0000-0000-000000000002',

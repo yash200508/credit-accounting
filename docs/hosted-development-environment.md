@@ -7,19 +7,22 @@
 | Project name | `credit-accounting-development` |
 | Safe alias | `credit-accounting-development` |
 | Classification | `DEVELOPMENT - FAKE DATA ONLY` |
-| Proposed region | `us-east-2` (Ohio), pending explicit approval |
-| Proposed plan | Free, Nano compute, pending no-cost availability check |
-| Expected cost | $0 only; stop if the Dashboard or CLI presents any charge |
-| Free-project pausing | Applies after inactivity |
+| Proposed region | `ap-south-1` (Mumbai), pending explicit creation approval |
+| Proposed plan | Free, Nano compute; live read-only quote confirmed |
+| Expected cost | US$0 upfront and US$0/month; stop if any charge appears |
+| Free-project pausing | Applies after about seven days of low activity |
 | Managed backups | Not included on the proposed Free plan |
 | PITR | Disabled and not authorized |
 | Clients/domains | None |
 | Production/real data | Prohibited |
 
-Ohio is the nearest currently offered CLI region to the operator's
-America/Chicago location. The region is not selected until the user approves
-that exact action. If `us-east-2` is unavailable, stop and present a revised
-region and rationale rather than silently choosing another.
+Mumbai is the nearest supported region to the application's users and
+gas-station operations in India. The live organization inventory has one of
+its two Free active-project slots available, and the project quote is
+US$0/month. The region is not selected for creation until the user approves
+that exact action. If `ap-south-1` becomes unavailable, stop and present a
+revised India-friendly region and rationale rather than silently choosing
+another.
 
 ## Authentication handoff
 

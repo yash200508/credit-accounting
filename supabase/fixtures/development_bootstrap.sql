@@ -84,7 +84,7 @@ select
   'DEV-DEMO',
   'DEVELOPMENT DEMO STATION - NOT REAL',
   null,
-  'America/Chicago',
+  'Asia/Kolkata',
   true,
   id,
   id
@@ -102,7 +102,7 @@ select
   'DEV-ISOLATION',
   'DEVELOPMENT ISOLATION STATION - NOT REAL',
   null,
-  'America/Chicago',
+  'Asia/Kolkata',
   true,
   id,
   id

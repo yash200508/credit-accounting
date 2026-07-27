@@ -53,7 +53,7 @@ skipped result is never a pass.
 |---|---|
 | OAuth handoff | Supabase connector authorized; CLI OAuth remains pending |
 | Existing-project read-only discovery | PASS; one non-matching Mumbai project excluded and untouched |
-| Project creation / region / plan | Pending explicit approval |
+| Project creation / region / plan | Mumbai `ap-south-1`, Free/Nano, US$0 upfront and US$0/month quoted; creation pending explicit approval |
 | Link and empty-state preflight | Pending explicit approval |
 | GitHub `development` Environment and secrets | Pending explicit approval |
 | Remote migration application/history | Pending explicit approval |
@@ -74,10 +74,21 @@ skipped result is never a pass.
 The authorized read-only connector inventory found one accessible organization,
 `surya lakshmi fuels point`, on the Free plan. It contains one healthy existing
 project with a generic name in `ap-south-1` (Mumbai). That project does not
-match the required `credit-accounting-development` name or proposed
-`us-east-2` region and is excluded from Phase 2E. No schema, Auth, data,
-configuration, link, or other mutation was attempted against it. Project and
-organization identifiers are intentionally omitted.
+match the required `credit-accounting-development` name or authorized
+repository-specific purpose and is excluded from Phase 2E. Its Mumbai region
+does not authorize reuse. No schema, Auth, data, configuration, link, or other
+mutation was attempted against it. Project and organization identifiers are
+intentionally omitted.
+
+The same read-only check confirmed that Free permits two active projects, the
+existing active project consumes one slot, and one slot remains. Mumbai's
+exact identifier is `ap-south-1`; the live quote for a second Free project is
+US$0/month with no upfront creation charge. Nano uses shared CPU and up to
+0.5 GB RAM with a 500 MB recommended database maximum. Free projects can
+pause after about seven days of low activity, do not include managed automatic
+backups or PITR, and require an off-platform logical-backup procedure. No
+project was created and no charge, upgrade, add-on, or region selection for
+creation was accepted.
 
 ## Local repository-control validation
 

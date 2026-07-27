@@ -17,9 +17,10 @@ shared, production, or real-data project would make that proof unsafe.
 Use exactly one hosted project named `credit-accounting-development`, referred
 to in logs and documentation by the safe alias of the same name. Label all
 fixtures `DEVELOPMENT - FAKE DATA ONLY`. Use a Free-plan Nano project when the
-user's organization can create it with no charge. Select `us-east-2` only
-after approval: Ohio is the closest currently supported CLI region to the
-operator's America/Chicago location and minimizes development round-trip time.
+user's organization can create it with no charge. Select `ap-south-1` only
+after approval: Mumbai is the closest supported region to the application's
+users and gas-station operations in India and minimizes development
+round-trip time.
 
 Do not enable PITR, paid compute, high availability, read replicas, custom
 domains, network add-ons, paid logs, or any other paid feature. Free projects

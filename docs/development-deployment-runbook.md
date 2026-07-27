@@ -28,7 +28,7 @@ Secrets:
 Variables:
 
 - `SUPABASE_EXPECTED_PROJECT_NAME=credit-accounting-development`
-- `SUPABASE_EXPECTED_REGION=us-east-2` after region approval
+- `SUPABASE_EXPECTED_REGION=ap-south-1` after region approval
 - `SUPABASE_DB_HOST`
 - `SUPABASE_DB_PORT`
 - `SUPABASE_DB_NAME`
