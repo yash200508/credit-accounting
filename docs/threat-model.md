@@ -49,7 +49,7 @@ boundary.
 | Arithmetic | Negative, fractional, or overflowing amounts corrupt balances | Positive integral validation, `NUMERIC` intermediates, checked `BIGINT` casts/addition/subtraction, and negative-obligation rejection | Load/performance limits require staging measurement |
 | Tampering | Client backdates interest or spoofs rate/grace policy | No client accrual RPC; engine derives stored business dates and effective policy server-side; evidence snapshots the result | Operator policy-change workflow needs dual-control design |
 | Tampering | Duplicate scheduler/catch-up compounds interest | Account/date/version uniqueness, shared account lock, FIFO fuel-only basis, named cron job, and safe replay | Production alerting on repeated failures is future work |
-| Elevation of privilege | pg_cron command exposes a secret or client-callable global trigger | Fixed SQL command, no HTTP/key, controlled job name, revoked cron schema and function execution | Hosted-project job owner and monitoring require deployment review |
+| Elevation of privilege | pg_cron command exposes a secret or client-callable global trigger | Fixed SQL command, no HTTP/key, controlled job name, no API-role schema usage, and exact extension-owned dormant ACL verification | Managed extension object ACLs remain `supabase_admin`-owned; monitoring requires deployment review |
 | Information disclosure | Components leak customer PII | Evidence stores UUID relationships and accounting snapshots only; RLS limits raw reads to owner/assigned manager | Export/report redaction remains future work |
 
 ## Accounting-specific abuse cases
@@ -161,6 +161,19 @@ professional financial and security review.
 - **Hosted/local drift:** remote history, exact public table set, forced RLS,
   definer execution, search paths, raw grants, extension placement, and cron
   are checked after deployment. Advisor codes require human disposition.
+- **Legacy automatic Data API grants:** migration 25 revokes all current
+  public table, sequence, and RPC access from `service_role`, restores only
+  RLS-scoped authenticated interest reads, and removes API-role default ACLs.
+  The public `service_role` allowlists are empty because no trusted SQL
+  workflow requires a service-key bypass.
+- **Future object exposure:** application objects are created only through
+  reviewed `postgres`-owned migrations. Global function defaults and public
+  table/sequence/function defaults deny `PUBLIC` and Data API roles until an
+  explicit reviewed grant is committed.
+- **Managed cron ACLs:** API roles and `PUBLIC` cannot use the `cron` schema.
+  Platform-owned dormant object ACLs cannot safely be rewritten by the
+  migration owner, so the verifier pins their exact set and the unchanged
+  owner-run job rather than treating them as reachable permissions.
 - **Remote test damage:** only generated fake identities, reserved labels,
   low paise limits, four bounded races, and no load testing. A controlled
   interest cycle has a separate approval flag.
@@ -174,3 +187,6 @@ professional financial and security review.
 Phase 2E reduces development deployment risk but does not add production
 capacity, recovery guarantees, monitoring service, client abuse protection, or
 an independent professional review.
+
+Migration 25 implements the three hardening controls above locally but has not
+yet been deployed to the hosted development project.

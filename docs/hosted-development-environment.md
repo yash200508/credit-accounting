@@ -7,8 +7,8 @@
 | Project name | `credit-accounting-development` |
 | Safe alias | `credit-accounting-development` |
 | Classification | `DEVELOPMENT - FAKE DATA ONLY` |
-| Proposed region | `ap-south-1` (Mumbai), pending explicit creation approval |
-| Proposed plan | Free, Nano compute; live read-only quote confirmed |
+| Region | `ap-south-1` (Mumbai) |
+| Plan | Free, Nano compute |
 | Expected cost | US$0 upfront and US$0/month; stop if any charge appears |
 | Free-project pausing | Applies after about seven days of low activity |
 | Managed backups | Not included on the proposed Free plan |
@@ -17,12 +17,9 @@
 | Production/real data | Prohibited |
 
 Mumbai is the nearest supported region to the application's users and
-gas-station operations in India. The live organization inventory has one of
-its two Free active-project slots available, and the project quote is
-US$0/month. The region is not selected for creation until the user approves
-that exact action. If `ap-south-1` becomes unavailable, stop and present a
-revised India-friendly region and rationale rather than silently choosing
-another.
+gas-station operations in India. The project was created only after approval
+at US$0/month and is the separately linked development target. The
+non-matching pre-existing Mumbai project remains excluded and untouched.
 
 ## Authentication handoff
 
@@ -58,11 +55,19 @@ isolation. Their generated passwords live only in ignored local state.
 
 ## API and database posture
 
-The Data API schema list must contain `public` and must not contain
-`app_private`. All 30 application tables in `public` have enabled and forced
-RLS. The `anon` role has no application access. Trusted mutation RPCs are
-granted to `authenticated`; raw financial tables, audit, interest evidence,
-and correction evidence have no client or `service_role` mutation grant.
+The Data API schema list contains `public` and does not contain `app_private`.
+All 30 application tables in `public` have enabled and forced RLS. The `anon`
+role has no application access. Trusted mutation RPCs are granted to
+`authenticated`. Most financial and correction objects already have the
+intended raw-grant posture; hosted legacy grants on the 15 foundation tables,
+the three authenticated interest-evidence tables, and four service-role RPCs
+remain until migration 25 receives separate deployment approval.
+
+Migration 25, currently local and not remotely deployed, removes all current
+public table, sequence, and RPC grants from `service_role`; that allowlist is
+intentionally empty. It also revokes all generated authenticated privileges
+from the three interest-evidence tables before restoring only RLS-scoped
+`SELECT`, and makes future `postgres`-owned public objects private by default.
 
 The database uses the committed hourly pg_cron job, with no HTTP call or
 credential. No service API key is stored in GitHub: the one-time fake-user
@@ -71,8 +76,9 @@ CLI and discards it.
 
 ## Current status
 
-Repository controls and the local baseline are implemented. Project discovery,
-creation/linking, remote migration, fake Auth creation, the controlled
-interest cycle, hosted tests, backup, and restore evidence remain pending until
-their explicit approval gates and actual execution are recorded in
-`phase-2e-validation-results.md`.
+Repository controls, project creation/linking, empty-state inspection, the
+first 24 hosted migrations, and read-only catalog/advisor verification are
+complete. Fake Auth creation, controlled interest execution, hosted behavior
+tests, backup/restore evidence, GitHub secrets, and deployment of local
+migration 25 remain behind separate approval gates. Actual evidence is tracked
+in `phase-2e-validation-results.md`.
