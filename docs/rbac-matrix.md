@@ -21,6 +21,12 @@ All permissions are bounded by active membership and the caller's organization o
 | Read ledger/sales/repayments | Owned tenant | Assigned station | No broad read | No direct financial-table read | No | No |
 | Read interest runs/calculations | Owned tenant | Assigned station | No | No raw evidence | No | No |
 | Trigger global/daily accrual | No client capability | No client capability | No | No | No | No |
+| Submit financial correction | Owned tenant/station | Assigned station only | No | No | No | No |
+| Preview correction impact | Owned tenant | Assigned station only | No | No | No | No |
+| Approve and execute correction | Independent active owner only | No | No | No | No | No |
+| Reject correction | Active owner | No | No | No | No | No |
+| Cancel pending correction | Active owner or original requester | Own pending request only | No | No | No | No |
+| Read correction evidence | Owned tenant | Assigned station only | No | No | No | No |
 | Mutate posted financial records | Never | Never | Never | Never | Never | Never |
 | Read audit events | Owned organization | Assigned-station events | No | No | No | No |
 | Update/delete audit events | Never | Never | Never | Never | Never | Never |
@@ -51,3 +57,9 @@ Interest execution is not a user capability. The internal scheduler calls only
 the fixed `app_private.run_hourly_interest_accrual()` entry point. Even owner
 and manager roles are read-only for run and calculation evidence; catch-up is
 an operator-controlled private path.
+
+Correction approval is an organization-owner capability with a mandatory
+maker-checker split. An owner who submitted the request cannot approve it.
+Managers may submit, preview, read, or cancel their own pending station-scoped
+request, but can never approve. Attendants have no correction workflow
+capability.

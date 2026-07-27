@@ -160,3 +160,19 @@ python supabase/tests/scheduler/phase_2c_scheduler_registration.py
 The scheduler script validates registration and privilege shape only. Local CI
 does not wait for or claim a real wall-clock cron execution. Production
 deployment, monitoring, and operator catch-up tooling remain outside Phase 2C.
+
+## Phase 2D correction interaction
+
+Fuel reversals are blocked once an accrual component references the source lot.
+Repayment reversals are blocked when a later same-account accrual used the
+reduced principal. Correction execution and accrual serialize on the same
+credit-account row.
+
+Future calculations exclude a fuel lot from its current-date reversal onward
+and treat a repayment reversal as a negative principal repayment. Historical
+dates before the reversal retain the original FIFO result.
+
+Interest-charge reversal remains unsupported because a ledger compensation
+alone cannot preserve cumulative raw interest, posted paise, fractional carry,
+account/date idempotency, or catch-up equivalence. The scheduler therefore
+never receives a client-created replacement interest charge.

@@ -88,11 +88,20 @@ Before migration, define how legacy VOID records become append-only reversals
 without rewriting history. Overpayments are rejected in Phase 2B; unallocated
 customer credit is not represented.
 
-## Phase 2C exclusions
+## Phase 2D correction rules and exclusions
 
-Compounding, client-created interest, alternative day-count bases,
-overpayment balances,
-unallocated customer credit, non-cash methods, refunds, reversals,
-price/litre/pump/nozzle capture, inventory movement, cash reconciliation, and
-legacy-data migration are not implemented. Reversal remains a required
-append-only future workflow.
+Posted financial rows remain immutable. A correction creates an exact
+`FINANCIAL_REVERSAL` with positive paise and swapped debit/credit directions,
+then optionally invokes a typed fuel or repayment replacement in the same
+transaction. Both new transactions use the station-local execution date.
+
+Fuel reversal is blocked after FIFO principal consumption or source-linked
+interest. Repayment reversal is blocked when restored principal exceeds the
+credit limit or later accrual used the reduced principal. Interest-charge
+reversal is blocked until an append-only cumulative-interest/carry adjustment
+model is proven.
+
+Compounding, client-created interest, alternative day-count bases, historical
+restatement, correction cascades, overpayment balances, unallocated credit,
+non-cash methods, refunds, price/litre/pump/nozzle capture, inventory movement,
+cash reconciliation, and legacy-data migration remain excluded.

@@ -107,10 +107,23 @@ will use separate Supabase projects, migrations promoted through CI/CD,
 environment-specific public URLs/anon keys, and server-only service
 credentials. Browser/mobile clients must never contain the service-role key.
 
+## Governed correction boundary
+
+Phase 2D adds forced-RLS request, typed proposal, immutable event, and reversal
+evidence tables. Submission and decision RPCs derive actors and scope from
+Auth. Approval locks request, original transaction, then credit account;
+recalculates dependencies; derives reversal entries from the ledger; and calls
+the existing typed posting function for an optional replacement. The preview
+never authorizes execution.
+
+Correction-aware FIFO removes a reversed fuel lot only from the reversal date
+forward and treats repayment reversals as negative repayments. This preserves
+historical as-of results while making future accrual inputs consistent.
+
 ## Deliberate exclusions
 
 No Flutter/Next.js work, QR resolution, customer or driver posting authority,
-client-facing interest-charge RPC,
-overpayment/customer credit, non-cash method, refund, reversal, real-data
-import, remote project, inventory, pump/nozzle, cash reconciliation, or
-attendance implementation is part of Phase 2C.
+client-facing interest-charge creation, historical restatement, automated
+correction cascade, overpayment/customer credit, non-cash method, refund,
+real-data import, remote project, inventory, pump/nozzle, cash reconciliation,
+or attendance implementation is part of Phase 2D.

@@ -15,8 +15,9 @@ A Java 17 + JavaFX desktop application for managing gas-station/customer credit 
   double-entry ledger, explicit principal/interest cash repayments, safe driver
   attribution, ledger-derived obligations, and exact daily simple-interest
   accrual with immutable source evidence, station-local catch-up scheduling,
-  and concurrency validation. No client integration or remote deployment is
-  implemented yet.
+  governed append-only reversals, typed correction replacements, independent
+  owner approval, dependency blocking, and concurrency validation. No client
+  integration or remote deployment is implemented yet.
 
 ## Local desktop setup
 
@@ -70,9 +71,11 @@ The installer documentation must stay aligned with the database path used by `Db
 - The JavaFX client is not yet connected to the local Supabase REST/PostgreSQL foundation.
 - There is no remote Supabase project, production database, Flutter client, Next.js dashboard, or server deployment yet.
 - The Java and local database suites cover the Phase 0/1 baseline plus Phase
-  2A credit posting, Phase 2B repayment/allocation, and Phase 2C automated
-  daily interest. Overpayment/customer-credit balances, payment methods beyond
-  cash, remote migration, and production scheduler operation remain deferred.
+  2A credit posting, Phase 2B repayment/allocation, Phase 2C automated daily
+  interest, and Phase 2D governed reversals/corrections.
+  Overpayment/customer-credit balances, historical restatement, automated
+  correction cascades, payment methods beyond cash, remote migration, and
+  production scheduler operation remain deferred.
 - Maven builds depend on external Maven repository availability unless dependencies are cached or mirrored; see `docs/maven-build-troubleshooting.md`.
 
 ## AI Assistance Disclosure
@@ -106,7 +109,13 @@ The JavaFX/SQLite application remains unchanged while the new backend is develop
 - [`docs/architecture-decisions/0006-daily-simple-interest-and-grace-policy.md`](docs/architecture-decisions/0006-daily-simple-interest-and-grace-policy.md)
 - [`docs/architecture-decisions/0007-interest-rounding-and-fractional-carry.md`](docs/architecture-decisions/0007-interest-rounding-and-fractional-carry.md)
 - [`docs/architecture-decisions/0008-station-local-accrual-scheduling.md`](docs/architecture-decisions/0008-station-local-accrual-scheduling.md)
+- [`docs/reversal-and-correction-workflow.md`](docs/reversal-and-correction-workflow.md)
+- [`docs/phase-2d-validation-results.md`](docs/phase-2d-validation-results.md)
+- [`docs/architecture-decisions/0009-append-only-financial-reversals.md`](docs/architecture-decisions/0009-append-only-financial-reversals.md)
+- [`docs/architecture-decisions/0010-maker-checker-correction-approval.md`](docs/architecture-decisions/0010-maker-checker-correction-approval.md)
+- [`docs/architecture-decisions/0011-dependency-aware-correction-blocking.md`](docs/architecture-decisions/0011-dependency-aware-correction-blocking.md)
 
-Phase 2C remains local-only and does not connect to a remote Supabase project
-or migrate real customer data. It uses a committed pg_cron registration, but
-production scheduling has not been deployed or remotely verified.
+Phases 2C and 2D remain local-only and do not connect to a remote Supabase
+project or migrate real customer data. The repository has a committed pg_cron
+registration, but production scheduling and correction operations have not
+been deployed or remotely verified.

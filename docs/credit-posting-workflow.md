@@ -72,10 +72,16 @@ only safe identifiers, amount, currency, product ID, transaction ID, account
 ID, and idempotency UUID. Names, phones, addresses, JWTs, QR data, credentials,
 and free-form source references are excluded from audit JSON.
 
-## Deferred workflows
+## Phase 2D corrections
 
-Repayments, principal/interest allocation, interest jobs, reversal commands,
+An eligible posted fuel sale can now be corrected only through a governed
+request, independent owner approval, and exact current-date compensating
+transaction. A replacement uses this same trusted posting function and remains
+on the original organization, station, customer, and credit account.
+
+Reversal is blocked after any FIFO principal consumption or source-linked
+interest. Replacement product, amount, and credit are revalidated under the
+account lock; failure rolls the reversal back.
+
 QR lookup, receipts as documents, inventory, pricing/litres, pumps/nozzles,
-cash reconciliation, and clients are not implemented here. A correction must
-eventually use a compensating/reversal transaction; posted rows will never be
-edited or deleted.
+cash reconciliation, and clients remain deferred.

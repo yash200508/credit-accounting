@@ -1,7 +1,8 @@
 # Entity Relationship Diagram
 
-This diagram includes the Phase 2A credit-posting, Phase 2B repayment, and
-Phase 2C daily-interest entities on the Phase 1 foundation.
+This diagram includes Phase 2A credit posting, Phase 2B repayment, Phase 2C
+daily interest, and Phase 2D governed correction entities on the Phase 1
+foundation.
 
 ```mermaid
 erDiagram
@@ -54,6 +55,12 @@ erDiagram
     LEDGER_TRANSACTIONS ||--o{ INTEREST_ACCRUAL_COMPONENTS : "is principal source"
     INTEREST_POLICIES ||--o{ INTEREST_ACCRUAL_COMPONENTS : prices
     LEDGER_TRANSACTIONS o|--o| INTEREST_ACCRUALS : "posts positive result"
+    LEDGER_TRANSACTIONS ||--o{ FINANCIAL_CORRECTION_REQUESTS : "is original"
+    FINANCIAL_CORRECTION_REQUESTS ||--o{ FINANCIAL_CORRECTION_EVENTS : records
+    FINANCIAL_CORRECTION_REQUESTS ||--o| FUEL_CREDIT_CORRECTION_PROPOSALS : proposes
+    FINANCIAL_CORRECTION_REQUESTS ||--o| REPAYMENT_CORRECTION_PROPOSALS : proposes
+    FINANCIAL_CORRECTION_REQUESTS ||--o| FINANCIAL_REVERSALS : executes
+    LEDGER_TRANSACTIONS ||--o| FINANCIAL_REVERSALS : "original/reversal/replacement"
     ORGANIZATIONS ||--o{ AUDIT_EVENTS : records
     STATIONS o|--o{ AUDIT_EVENTS : contextualizes
     ORGANIZATIONS ||--o{ APP_SETTINGS : configures
@@ -87,3 +94,8 @@ erDiagram
 - An organization/operation/idempotency-key tuple identifies one request
   fingerprint and one operation-specific completed result, preventing a
   repayment key from colliding with a fuel-posting key.
+- One original ledger transaction has at most one `financial_reversals` row.
+  Each executed request links one exact reversal and at most one typed
+  replacement.
+- A reverse-and-replace request has exactly one proposal matching the original
+  transaction family; reversal-only requests have none.

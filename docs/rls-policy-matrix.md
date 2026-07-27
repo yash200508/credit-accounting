@@ -29,6 +29,11 @@ Every table below has RLS enabled and forced. `anon` receives no table or functi
 | `interest_accrual_runs` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; internal engine only |
 | `interest_accruals` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; internal engine only |
 | `interest_accrual_components` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; internal engine only |
+| `financial_correction_requests` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted RPC only |
+| `fuel_credit_correction_proposals` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted RPC only |
+| `repayment_correction_proposals` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; trusted RPC only |
+| `financial_correction_events` | Read owned tenant | Read events for assigned-station requests | Denied | Denied | Denied | None; immutable trusted evidence |
+| `financial_reversals` | Read owned tenant | Read assigned-station rows | Denied | Denied | Denied | None; immutable trusted evidence |
 
 ## Privileged helpers
 
@@ -76,3 +81,8 @@ point.
   boundary.
 - Interest evidence tables are append-only; operational runs permit exactly
   one guarded `STARTED` to final transition.
+- Correction requests have a guarded pending-to-terminal update only. Proposal,
+  transition-event, and reversal-evidence updates/deletes are rejected by hard
+  triggers.
+- Authenticated clients receive execute only on the five correction RPCs.
+  `service_role` receives no raw correction-table capability.
