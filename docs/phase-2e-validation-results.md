@@ -123,9 +123,15 @@ No unresolved critical or high-confidence security finding remains in the
 Phase 2E diff. Hosted advisors, live configuration, and external-state checks
 remain pending and cannot be inferred from local evidence.
 
+An OWASP Dependency-Check 12.2.2 Maven scan was also attempted. Its
+vulnerability-feed update did not finish within the 20-minute bound and
+produced no report, so dependency-vulnerability status is **unverified**, not a
+pass. The timed-out scanner process was stopped; normal Maven compilation and
+all 37 tests remain green.
+
 ## Known limitations
 
 No client, real-data migration, production project, production workflow,
 managed backup, PITR, recovery objective, wall-clock scheduler proof, load
-test, or independent professional security/financial review is part of this
-phase.
+test, completed software-composition vulnerability report, or independent
+professional security/financial review is part of this phase.
