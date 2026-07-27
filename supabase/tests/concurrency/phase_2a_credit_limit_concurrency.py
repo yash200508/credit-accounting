@@ -4,18 +4,27 @@
 from __future__ import annotations
 
 import re
+import os
 import subprocess
 import sys
 import time
 import uuid
 from pathlib import Path
 
+from psql_target import database_target, psql_command as target_psql_command
+
 
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG = ROOT / "supabase" / "config.toml"
-OWNER_ID = "10000000-0000-0000-0000-000000000001"
-STATION_ID = "a1000000-0000-0000-0000-000000000001"
-PRODUCT_ID = "af100000-0000-0000-0000-000000000001"
+OWNER_ID = os.environ.get(
+    "PHASE_2E_OWNER_ID", "10000000-0000-0000-0000-000000000001"
+)
+STATION_ID = os.environ.get(
+    "PHASE_2E_STATION_ID", "a1000000-0000-0000-0000-000000000001"
+)
+PRODUCT_ID = os.environ.get(
+    "PHASE_2E_PRODUCT_ID", "af100000-0000-0000-0000-000000000001"
+)
 
 
 class HarnessFailure(RuntimeError):
@@ -41,50 +50,15 @@ def project_id() -> str:
     return match.group(1)
 
 
-def database_container() -> str:
-    result = run(
-        [
-            "docker",
-            "ps",
-            "--filter",
-            f"label=com.supabase.cli.project={project_id()}",
-            "--format",
-            "{{.Names}}",
-        ]
-    )
-    if result.returncode != 0:
-        raise HarnessFailure(f"docker ps failed: {result.stderr.strip()}")
-
-    candidates = [
-        name.strip()
-        for name in result.stdout.splitlines()
-        if name.strip().startswith("supabase_db_")
-    ]
-    if len(candidates) != 1:
-        raise HarnessFailure(
-            f"expected one running local Supabase database container, found {candidates}"
-        )
-    return candidates[0]
+def database_container() -> str | None:
+    try:
+        return database_target(project_id())
+    except RuntimeError as exc:
+        raise HarnessFailure(str(exc)) from exc
 
 
-def psql_command(container: str, sql: str) -> list[str]:
-    return [
-        "docker",
-        "exec",
-        "-i",
-        container,
-        "psql",
-        "-X",
-        "-qAt",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-U",
-        "postgres",
-        "-d",
-        "postgres",
-        "-c",
-        sql,
-    ]
+def psql_command(container: str | None, sql: str) -> list[str]:
+    return target_psql_command(container, sql)
 
 
 def authenticated_sql(body: str) -> str:
