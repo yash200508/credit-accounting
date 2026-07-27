@@ -16,8 +16,10 @@ A Java 17 + JavaFX desktop application for managing gas-station/customer credit 
   attribution, ledger-derived obligations, and exact daily simple-interest
   accrual with immutable source evidence, station-local catch-up scheduling,
   governed append-only reversals, typed correction replacements, independent
-  owner approval, dependency blocking, and concurrency validation. No client
-  integration or remote deployment is implemented yet.
+  owner approval, dependency blocking, and concurrency validation. Phase 2E
+  adds a manual, fail-closed hosted-development deployment path, fake-data
+  smoke harnesses, advisors, and logical backup/restore tooling. No client or
+  production deployment is implemented.
 
 ## Local desktop setup
 
@@ -69,12 +71,14 @@ The installer documentation must stay aligned with the database path used by `Db
 - The app is currently local/offline desktop only.
 - There is no implemented role-based login yet.
 - The JavaFX client is not yet connected to the local Supabase REST/PostgreSQL foundation.
-- There is no remote Supabase project, production database, Flutter client, Next.js dashboard, or server deployment yet.
+- The one hosted Supabase development project remains gated by explicit user
+  approval and recorded validation; there is no production database, Flutter
+  client, Next.js dashboard, or production deployment.
 - The Java and local database suites cover the Phase 0/1 baseline plus Phase
   2A credit posting, Phase 2B repayment/allocation, Phase 2C automated daily
   interest, and Phase 2D governed reversals/corrections.
   Overpayment/customer-credit balances, historical restatement, automated
-  correction cascades, payment methods beyond cash, remote migration, and
+  correction cascades, payment methods beyond cash, production migration, and
   production scheduler operation remain deferred.
 - Maven builds depend on external Maven repository availability unless dependencies are cached or mirrored; see `docs/maven-build-troubleshooting.md`.
 
@@ -115,7 +119,14 @@ The JavaFX/SQLite application remains unchanged while the new backend is develop
 - [`docs/architecture-decisions/0010-maker-checker-correction-approval.md`](docs/architecture-decisions/0010-maker-checker-correction-approval.md)
 - [`docs/architecture-decisions/0011-dependency-aware-correction-blocking.md`](docs/architecture-decisions/0011-dependency-aware-correction-blocking.md)
 
-Phases 2C and 2D remain local-only and do not connect to a remote Supabase
-project or migrate real customer data. The repository has a committed pg_cron
-registration, but production scheduling and correction operations have not
-been deployed or remotely verified.
+Phases 2C and 2D were completed locally. Phase 2E is the development-only
+hosted reproduction and operations gate; it never migrates real customer data
+or authorizes production scheduling.
+
+Phase 2E entry points:
+
+- [`docs/hosted-development-environment.md`](docs/hosted-development-environment.md)
+- [`docs/development-deployment-runbook.md`](docs/development-deployment-runbook.md)
+- [`docs/development-backup-restore-runbook.md`](docs/development-backup-restore-runbook.md)
+- [`docs/development-operations-runbook.md`](docs/development-operations-runbook.md)
+- [`docs/phase-2e-validation-results.md`](docs/phase-2e-validation-results.md)

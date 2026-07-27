@@ -22,6 +22,14 @@
 8. **Scheduler registration:** a dedicated local check verifies the extension,
    single named job, hourly expression, fixed command, lack of secrets, and
    privilege revocations. It does not claim wall-clock cron execution.
+9. **Hosted development:** after approvals, a target verifier checks exact
+   project identity, Auth, and Data API schemas; catalog SQL checks all expected
+   tables, forced RLS, grants, search paths, and cron; normal Auth/PostgREST
+   smoke covers 23 business/denial cases; the four existing race harnesses run
+   through TLS PostgreSQL environment variables.
+10. **Logical recovery:** schema/fake-data dumps are scanned and restored into
+    a disposable local stack, then ledger, interest, correction, RLS, function,
+    migration, and cron evidence is reconciled.
 
 ## Deterministic contexts
 
@@ -146,3 +154,19 @@ The Phase 2D independent-session harness races two approvals, repayment
 reversal against fuel posting, fuel reversal against interest accrual, and
 approval against cancellation. It validates final ledger, obligation, event,
 replacement, idempotency, and partial-row counts.
+
+## Phase 2E hosted coverage
+
+The hosted functional harness signs in only generated `.example.test`
+identities and calls normal public RPCs wherever possible. It verifies
+owner/manager creation, attendant denial and posting, balance movement,
+same/changed-payload idempotency, principal and interest repayment, private
+interest denial, separately approved internal cycle behavior, maker-checker
+correction, self-approval denial, exact reversal, immutable original,
+cross-tenant/anonymous denial, and direct mutation denial.
+
+Remote mode preserves each existing independent `psql` process and expected
+domain errors while replacing the local Docker target with TLS `PG*`
+environment values. It is a four-scenario smoke, not a load test. Successful
+append-only records remain labeled development. Wall-clock scheduler execution
+is reported only if a real hosted cron run is observed.

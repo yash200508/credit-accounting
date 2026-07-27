@@ -86,3 +86,17 @@ point.
   triggers.
 - Authenticated clients receive execute only on the five correction RPCs.
   `service_role` receives no raw correction-table capability.
+
+## Hosted-development drift checks
+
+`phase_2e_catalog_security.sql` compares the hosted `public` table set to all
+30 expected tables, rejects missing enabled/forced RLS, broad true policies,
+RLS-bypassing views, mutable function search paths, `PUBLIC`/`anon` definer
+execution, client or `service_role` raw financial mutations, private/cron
+schema leakage, and changed/duplicate/credentialed cron registration.
+
+`verify_development_target.py` separately verifies through the Management API
+that `app_private` is absent from the Data API schema list, `public` is
+present, public signup and anonymous sign-in are disabled, and no social Auth
+provider is enabled. Hosted advisor findings supplement but do not replace
+these repository-owned assertions.

@@ -146,3 +146,31 @@ professional financial or security audit.
 Remaining operational risks include hosted-environment verification,
 rate/abuse controls, backup/restore drills, alerting, and an independent
 professional financial and security review.
+
+## Phase 2E hosted-development threats and controls
+
+- **Wrong-project deployment:** exact project name/region verification through
+  the Management API, a development marker, expected Data API schemas, manual
+  Environment approval, and a fixed concurrency lock fail closed before push.
+- **Secrets reaching untrusted code:** deployment runs only from `main`; the
+  selected full SHA must be an ancestor of `main`; pull requests and forks
+  receive no environment secrets; actions are immutable-SHA pinned.
+- **Open Auth/API surface:** public signup, anonymous sign-in, social providers,
+  and production redirects are absent; `app_private` is rejected in exposed
+  schemas; fake identity metadata never authorizes.
+- **Hosted/local drift:** remote history, exact public table set, forced RLS,
+  definer execution, search paths, raw grants, extension placement, and cron
+  are checked after deployment. Advisor codes require human disposition.
+- **Remote test damage:** only generated fake identities, reserved labels,
+  low paise limits, four bounded races, and no load testing. A controlled
+  interest cycle has a separate approval flag.
+- **Backup credential/PII leakage:** only application schemas/data and non-login
+  Auth stubs are dumped; scanners reject token/key/URI shapes, non-fake email
+  domains, and unexpected phone values; backups are ignored and checksummed.
+- **Unsafe rollback:** immutable migrations use forward fixes. Security
+  exposure prioritizes containment and rotation. Hosted reset/restore/delete
+  are separate approval-gated actions.
+
+Phase 2E reduces development deployment risk but does not add production
+capacity, recovery guarantees, monitoring service, client abuse protection, or
+an independent professional review.
