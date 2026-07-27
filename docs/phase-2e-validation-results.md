@@ -51,8 +51,8 @@ skipped result is never a pass.
 
 | Evidence | Status |
 |---|---|
-| OAuth handoff | Pending user completion |
-| Existing-project read-only discovery | Pending authentication |
+| OAuth handoff | Supabase connector authorized; CLI OAuth remains pending |
+| Existing-project read-only discovery | PASS; one non-matching Mumbai project excluded and untouched |
 | Project creation / region / plan | Pending explicit approval |
 | Link and empty-state preflight | Pending explicit approval |
 | GitHub `development` Environment and secrets | Pending explicit approval |
@@ -70,6 +70,14 @@ skipped result is never a pass.
 | Logical backup and manifest checksum | Pending |
 | Disposable local restore/reconciliation | PASS with synthetic fake-only local dump; hosted-origin backup remains pending |
 | Final complete local suite | PASS after final repository changes |
+
+The authorized read-only connector inventory found one accessible organization,
+`surya lakshmi fuels point`, on the Free plan. It contains one healthy existing
+project with a generic name in `ap-south-1` (Mumbai). That project does not
+match the required `credit-accounting-development` name or proposed
+`us-east-2` region and is excluded from Phase 2E. No schema, Auth, data,
+configuration, link, or other mutation was attempted against it. Project and
+organization identifiers are intentionally omitted.
 
 ## Local repository-control validation
 
