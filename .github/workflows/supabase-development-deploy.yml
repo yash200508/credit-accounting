@@ -42,6 +42,7 @@ jobs:
       PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PGSSLMODE: require
       PGCONNECT_TIMEOUT: '10'
+      PGOPTIONS: -c statement_timeout=30000 -c lock_timeout=5000
 
     steps:
       - name: Check out trusted workflow revision

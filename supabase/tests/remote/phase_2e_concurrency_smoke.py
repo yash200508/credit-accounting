@@ -74,6 +74,10 @@ def main() -> int:
 
         users = credentials()
         environment = dict(os.environ)
+        environment.setdefault(
+            "PGOPTIONS",
+            "-c statement_timeout=60000 -c lock_timeout=15000",
+        )
         environment.update(
             {
                 "PHASE_2E_OWNER_ID": users["owner-a"],

@@ -173,12 +173,13 @@ def main() -> int:
     backup = Path(args.backup_directory).resolve()
     work_root = Path(tempfile.mkdtemp(prefix="phase2e-restore-"))
     repository = work_root / "credit-accounting-restore"
-    started = False
+    start_attempted = False
     try:
         verify_backup(backup)
         copy_repository(repository)
         project_id = isolate_config(repository / "supabase" / "config.toml")
 
+        start_attempted = True
         start = run(
             ["npx", "--yes", f"supabase@{CLI_VERSION}", "start"],
             cwd=repository,
@@ -186,7 +187,6 @@ def main() -> int:
         )
         if start.returncode != 0:
             raise RestoreFailure("disposable local Supabase start failed")
-        started = True
         reset = run(
             ["npx", "--yes", f"supabase@{CLI_VERSION}", "db", "reset", "--local"],
             cwd=repository,
@@ -248,7 +248,7 @@ delete from auth.users;
         print(f"FAIL: disposable local restore rehearsal: {exc}", file=sys.stderr)
         return 1
     finally:
-        if started:
+        if start_attempted:
             run(
                 [
                     "npx",
