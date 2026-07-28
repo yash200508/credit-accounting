@@ -1,7 +1,3 @@
-\set ON_ERROR_STOP on
-\pset tuples_only on
-\pset format unaligned
-
 begin;
 set local statement_timeout = '30s';
 set local lock_timeout = '5s';

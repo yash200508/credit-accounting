@@ -24,7 +24,6 @@ from phase_2e_target_safety import (
     TargetSafetyFailure,
     npx_executable,
     verify_local_link,
-    verify_postgres_environment,
 )
 
 
@@ -32,15 +31,18 @@ ROOT = Path(__file__).resolve().parents[1]
 CLI_VERSION = "2.109.1"
 STATE_FILE = ROOT / ".local-state" / "phase-2e-auth.json"
 FIXTURE_SQL = ROOT / "supabase" / "fixtures" / "development_bootstrap.sql"
+EXPECTED_PROJECT_REF = "pjjbjeqkktxnphavolvf"
+EXPECTED_ORGANIZATION_ID = "etuzckorqalyqcmcdcyv"
 EXPECTED_NAME = "credit-accounting-development"
+EXPECTED_REGION = "ap-south-1"
 FAKE_USERS = (
     ("owner-a", "owner-a@credit-accounting.example.test"),
-    ("owner-checker", "owner-checker@credit-accounting.example.test"),
-    ("manager-a", "manager-a@credit-accounting.example.test"),
-    ("attendant-a", "attendant-a@credit-accounting.example.test"),
-    ("customer-a", "customer-a@credit-accounting.example.test"),
-    ("driver-a", "driver-a@credit-accounting.example.test"),
-    ("isolation-owner", "isolation-owner@credit-accounting.example.test"),
+    ("owner-b", "owner-b@credit-accounting.example.test"),
+    ("manager", "manager@credit-accounting.example.test"),
+    ("attendant", "attendant@credit-accounting.example.test"),
+    ("customer", "customer@credit-accounting.example.test"),
+    ("driver", "driver@credit-accounting.example.test"),
+    ("unauthorized", "unauthorized@credit-accounting.example.test"),
 )
 
 
@@ -85,6 +87,8 @@ def cli(*arguments: str) -> Any:
 
 
 def verify_project(project_ref: str, expected_region: str) -> None:
+    if project_ref != EXPECTED_PROJECT_REF or expected_region != EXPECTED_REGION:
+        raise BootstrapFailure("selected target is not the approved development project")
     projects = cli("projects", "list")
     matches = [
         item
@@ -97,8 +101,12 @@ def verify_project(project_ref: str, expected_region: str) -> None:
     project = matches[0]
     if project.get("name") != EXPECTED_NAME:
         raise BootstrapFailure("selected project is not the approved development project")
-    if project.get("region") != expected_region:
+    if project.get("organization_id") != EXPECTED_ORGANIZATION_ID:
+        raise BootstrapFailure("selected project is not in the approved organization")
+    if project.get("region") != EXPECTED_REGION:
         raise BootstrapFailure("selected project is not in the approved region")
+    if project.get("status") != "ACTIVE_HEALTHY":
+        raise BootstrapFailure("selected development project is not healthy")
 
 
 def project_secret(project_ref: str) -> str:
@@ -181,6 +189,11 @@ def existing_users(project_ref: str, secret_key: str) -> dict[str, dict[str, Any
 
 def create_users(project_ref: str, secret_key: str) -> list[dict[str, str]]:
     existing = existing_users(project_ref, secret_key)
+    expected_emails = {email for _, email in FAKE_USERS}
+    if set(existing) - expected_emails:
+        raise BootstrapFailure(
+            "unexpected Auth users exist; refusing development bootstrap"
+        )
     credentials: list[dict[str, str]] = []
     prior_credentials: dict[str, dict[str, str]] = {}
     if STATE_FILE.exists():
@@ -198,7 +211,7 @@ def create_users(project_ref: str, secret_key: str) -> list[dict[str, str]]:
         current = existing.get(email)
         prior = prior_credentials.get(email)
         if current is not None and prior is None:
-            metadata = current.get("user_metadata") or current.get("raw_user_meta_data")
+            metadata = current.get("app_metadata") or current.get("raw_app_meta_data")
             if not isinstance(metadata, dict) or (
                 metadata.get("environment") != "DEVELOPMENT"
                 or metadata.get("fake_data") is not True
@@ -246,7 +259,7 @@ def create_users(project_ref: str, secret_key: str) -> list[dict[str, str]]:
                 "email": email,
                 "password": password,
                 "email_confirm": True,
-                "user_metadata": {
+                "app_metadata": {
                     "fixture": label,
                     "environment": "DEVELOPMENT",
                     "fake_data": True,
@@ -279,25 +292,25 @@ def write_state(users: list[dict[str, str]]) -> None:
         pass
 
 
-def apply_application_fixtures() -> None:
-    for name in ("PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGPASSWORD"):
-        required_env(name)
+def apply_application_fixtures(project_ref: str) -> None:
+    verify_local_link(ROOT, project_ref)
     result = subprocess.run(
         [
-            "psql",
-            "-X",
-            "--no-psqlrc",
-            "--quiet",
-            "--set",
-            "ON_ERROR_STOP=1",
+            npx_executable(),
+            "--yes",
+            f"supabase@{CLI_VERSION}",
+            "db",
+            "query",
+            "--linked",
             "--file",
             str(FIXTURE_SQL),
         ],
         cwd=ROOT,
         check=False,
+        capture_output=True,
         text=True,
         encoding="utf-8",
-        timeout=60,
+        timeout=120,
     )
     if result.returncode != 0:
         raise BootstrapFailure("application fixture transaction failed")
@@ -309,11 +322,10 @@ def main() -> int:
         expected_region = required_env("SUPABASE_EXPECTED_REGION")
         verify_project(project_ref, expected_region)
         verify_local_link(ROOT, project_ref)
-        verify_postgres_environment(project_ref)
         secret_key = project_secret(project_ref)
         users = create_users(project_ref, secret_key)
         write_state(users)
-        apply_application_fixtures()
+        apply_application_fixtures(project_ref)
         print(
             "PASS: created or verified 7 fake development Auth users and "
             "deterministic application fixtures; credentials remain in ignored local state."
