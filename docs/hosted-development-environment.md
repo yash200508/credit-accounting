@@ -50,10 +50,11 @@ reset or overwrite an existing project to make it fit.
 - Authorization comes from protected membership and role tables, never
   user-editable metadata.
 
-Seven planned `.example.test` identities will support two owners,
-maker-checker, manager, attendant, customer, driver, and cross-tenant
-isolation. They have not been created. After separate approval, their
-generated passwords will live only in ignored local state.
+Seven `.example.test` identities now support two owners for maker-checker,
+one manager, one attendant, one customer, one linked driver, and one
+authenticated user with no application authorization. Their generated
+passwords live only in ignored local state at
+`.local-state/phase-2e-auth.json`; values are never logged or committed.
 
 ## API and database posture
 
@@ -83,18 +84,18 @@ into process memory from the authenticated CLI and discard it.
 
 ## Current status
 
-Repository controls, project creation/linking, empty-state inspection, the
-deployment of all 25 migrations, and read-only hosted catalog/security
-verification are complete. Local and remote migration histories match
-exactly, and the committed hosted verifier passes. Security Advisor still
-reports exactly the 11 expected allowlisted rule-0029 warnings; Performance
-Advisor still reports 62 unindexed-foreign-key and 115 unused-index
-informational findings.
+Repository controls, project creation/linking, deployment of all 25
+migrations, read-only hosted catalog/security verification, and the approved
+fake Auth/application bootstrap are complete. Local and remote migration
+histories match exactly, and the committed hosted verifier passes. The
+bootstrap contains one clearly synthetic organization and Mumbai station,
+seven fake profiles, one customer/account/driver, Petrol and Diesel, and one
+18% development interest policy. All financial evidence tables remain empty.
 
-The development project contains no real customer data. Fake Auth/bootstrap
-data, hosted functional and concurrency testing, controlled interest
-execution, wall-clock cron evidence, backup/restore evidence, and GitHub
-development secrets/environment configuration remain behind separate approval
-gates. No production project exists within this Phase 2E deployment scope, and
-the excluded pre-existing Supabase project remains untouched. Actual evidence
-is tracked in `phase-2e-validation-results.md`.
+The development project contains no real customer data. Hosted functional and
+concurrency testing, controlled interest execution, wall-clock cron evidence,
+hosted-origin backup/restore evidence, and GitHub development
+secrets/environment configuration remain behind separate approval gates. No
+production project exists within this Phase 2E deployment scope, and the
+excluded pre-existing Supabase project remains untouched. Actual evidence is
+tracked in `phase-2e-validation-results.md`.

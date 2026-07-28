@@ -65,8 +65,8 @@ skipped result is never a pass.
 | Hosted catalogs/RLS/grants/Data API | PASS after migration 25; privilege/default-ACL hardening and Data API exposure verified |
 | Security Advisor codes/dispositions | Reviewed; 11 instances of `0029_authenticated_security_definer_function_executable` are intentional allowlisted RPCs |
 | Performance Advisor codes/dispositions | Reviewed; 62 composite-FK and 115 fresh-project unused-index findings triaged separately |
-| Closed Auth verification | Read-only configuration reviewed; no real or fake users exist and fake-user creation remains pending |
-| Fake Auth/bootstrap | Pending explicit approval |
+| Closed Auth verification | PASS; seven expected fake users, seven identities, protected development markers, and zero unexpected users |
+| Fake Auth/bootstrap | PASS; minimum deterministic fake application state created with all financial evidence tables empty |
 | Functional smoke (23 checks) | Pending |
 | Four hosted concurrency races | Pending |
 | Controlled interest cycle | Pending explicit approval |
@@ -80,9 +80,10 @@ The organization is `surya lakshmi fuels point`. Its earlier non-matching
 Mumbai project remains excluded and untouched. A separately approved Free/Nano
 project named `credit-accounting-development` was created in `ap-south-1`,
 linked by exact reference, inspected while empty, and received only the first
-25 committed migrations. No seed, bootstrap, fake Auth user, hosted test,
-scheduler invocation, configuration change, real data, reset, restore, or paid
-feature was applied.
+25 committed migrations. A separately approved bootstrap then created only
+seven fake Auth users and the deterministic development fixtures described
+below. No local seed, hosted test, scheduler invocation, configuration change,
+real data, reset, restore, or paid feature was applied.
 
 The same read-only check confirmed that Free permits two active projects, the
 existing active project consumes one slot, and one slot remains. Mumbai's
@@ -123,6 +124,40 @@ No unexpected schema, migration, trigger, business function, policy, or cron
 job drift was found. The committed hosted catalog/security verifier passed.
 Migration 25 resolved the privilege drift caused by legacy automatic Data API
 grants and incomplete earlier revocations.
+
+## Hosted fake bootstrap evidence
+
+The approved bootstrap created exactly seven synthetic `.example.test` Auth
+users: Owner A, Owner B, Manager, Attendant, Customer, Driver, and an
+authenticated unauthorized actor. Owner A and Owner B are active organization
+owners; Manager and Attendant have active station membership and their
+respective station-scoped roles; Customer and Driver are active organization
+members with their protected roles; the unauthorized actor has no
+organization membership, station membership, role, customer, or driver row.
+Authorization remains in protected database tables rather than editable Auth
+metadata.
+
+The application fixture contains exactly one
+`DEVELOPMENT DEMO ORGANIZATION - NOT REAL DATA` organization and one
+`DEVELOPMENT MUMBAI STATION - NOT REAL` station in `Asia/Kolkata`, with no
+real address. It has seven profiles, six organization memberships, two
+station memberships, six role assignments, one fake customer, one INR credit
+account with a 1,000,000-paise limit, one linked driver with 50,000-paise
+transaction and 100,000-paise daily limits, Petrol and Diesel products, and
+one enabled 18% `AFTER_GRACE_ONLY` policy using a 365-day basis. Principal,
+interest, and total due are zero; available credit is the full 1,000,000
+paise.
+
+All ledger, fuel-sale, repayment, allocation, interest-accrual, correction,
+reversal, proposal, and idempotency evidence tables remained empty. No QR
+credential was created. Passwords were generated randomly and persisted only
+in ignored, untracked `.local-state/phase-2e-auth.json`; no value was printed,
+documented, or committed. Admin user creation sent no invitations or SMS.
+Post-bootstrap verification again found forced RLS on all 30 application
+tables, no broad true policy, zero service-role application-table or public
+RPC privileges, zero raw financial mutation grants, the exact 11 authenticated
+public `SECURITY DEFINER` RPCs, safe default ACLs, the unchanged one cron job,
+and only `public` plus `graphql_public` exposed through the Data API.
 
 ## Privilege root causes and decisions
 
@@ -326,5 +361,6 @@ wall-clock scheduler proof, hosted functional/concurrency test, load test,
 completed software-composition vulnerability report, GitHub development
 secrets/environment configuration, or independent professional
 security/financial review is part of the completed work to date. No real
-customer data or fake Auth/bootstrap data exists in the development project,
-and the excluded pre-existing Supabase project remains untouched.
+customer data exists in the development project; its only application data is
+the approved synthetic bootstrap. The excluded pre-existing Supabase project
+remains untouched.
