@@ -102,10 +102,13 @@ QR payloads contain only a high-entropy opaque token. The database stores its on
 
 ## Deployment boundaries
 
-Phase 2C runs only against the local Supabase containers. Future environments
-will use separate Supabase projects, migrations promoted through CI/CD,
-environment-specific public URLs/anon keys, and server-only service
-credentials. Browser/mobile clients must never contain the service-role key.
+Phase 2E introduces exactly one isolated hosted development project, still with
+no client. Pull-request CI remains local. A separate manual workflow uses the
+protected `development` GitHub Environment, proves the project name/region,
+applies only reviewed main-ancestor migrations under one concurrency lock, and
+checks remote history, RLS, grants, Auth, Data API schemas, cron, and advisors.
+Production remains absent. Browser/mobile clients must never contain a
+service/secret key.
 
 ## Governed correction boundary
 
@@ -127,3 +130,8 @@ client-facing interest-charge creation, historical restatement, automated
 correction cascade, overpayment/customer credit, non-cash method, refund,
 real-data import, remote project, inventory, pump/nozzle, cash reconciliation,
 or attendance implementation is part of Phase 2D.
+
+Phase 2E additionally excludes hosted production, real-data import, paid
+availability/recovery features, load testing, clients, custom domains, and QR
+credential work. Its backup proof is a development logical dump restored into
+a disposable local stack, not hosted disaster recovery.

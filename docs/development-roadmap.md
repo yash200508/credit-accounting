@@ -84,25 +84,36 @@ Interest-charge reversal is deliberately blocked because Phase 2C has no
 append-only adjustment accumulator for cumulative posted interest and
 fractional carry. The slice remains local-only.
 
+## Phase 2E — in progress: hosted development and operations
+
+```text
+Verify local baseline
+→ reproduce immutable migrations in one fake-data hosted development project
+→ verify RLS, grants, Auth, API exposure, cron, and advisors
+→ run functional and concurrency smoke
+→ create logical backup and disposable local restore evidence
+```
+
+Project creation, region selection, linking, remote migration, fake Auth users,
+controlled interest execution, and GitHub secrets retain explicit approval
+gates. Production and real data remain out of scope.
+
 ## Later slices
 
-1. **Next recommended slice:** remote development Supabase deployment and
-   operational hardening. The largest remaining risk is proving migrations,
-   forced RLS, scheduler registration, logs, backups, and correction locking in
-   a disposable hosted development environment before adding client lookup.
-2. Customer and driver QR credential resolution with minimum account lookup.
-3. Refund and reconciliation workflows built on governed corrections.
-4. Audited owner workflows for memberships, roles, stations, customers,
+1. **Next recommended slice after Phase 2E:** customer and driver QR
+   credential issuance, rotation, revocation, and minimum account lookup.
+2. Refund and reconciliation workflows built on governed corrections.
+3. Audited owner workflows for memberships, roles, stations, customers,
    drivers, limits, products, and QR rotation.
-5. Thin Flutter attendant/customer workflows built only on secure RPC/API
+4. Thin Flutter attendant/customer workflows built only on secure RPC/API
    boundaries.
-6. Next.js owner/manager dashboard with server-only privileged operations.
-7. Governed SQLite export, validation, dry-run import, reconciliation, and
+5. Next.js owner/manager dashboard with server-only privileged operations.
+6. Governed SQLite export, validation, dry-run import, reconciliation, and
    rollback.
-8. Offline queue only after conflict, idempotency, clock, and reconciliation
+7. Offline queue only after conflict, idempotency, clock, and reconciliation
    rules are complete.
-9. Inventory and attendance as separate bounded domains.
-10. Staging hardening, observability, backups, performance tests, professional
+8. Inventory and attendance as separate bounded domains.
+9. Staging hardening, observability, backups, performance tests, professional
     financial/security review, and production readiness.
 
 ## Cross-cutting gates

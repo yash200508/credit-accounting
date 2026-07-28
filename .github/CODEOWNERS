@@ -1,0 +1,4 @@
+# Deployment and database-boundary changes require repository-owner review.
+/.github/workflows/ @yash200508
+/supabase/migrations/ @yash200508
+/supabase/config.toml @yash200508

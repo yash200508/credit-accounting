@@ -1,0 +1,197 @@
+name: Supabase Development Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact commit on main to deploy to the development project
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-development-deployment
+  cancel-in-progress: false
+
+env:
+  SUPABASE_CLI_VERSION: 2.109.1
+  SUPABASE_EXPECTED_PROJECT_NAME: ${{ vars.SUPABASE_EXPECTED_PROJECT_NAME }}
+  SUPABASE_EXPECTED_REGION: ${{ vars.SUPABASE_EXPECTED_REGION }}
+  SUPABASE_DB_HOST: ${{ vars.SUPABASE_DB_HOST }}
+  SUPABASE_DB_PORT: ${{ vars.SUPABASE_DB_PORT }}
+  SUPABASE_DB_NAME: ${{ vars.SUPABASE_DB_NAME }}
+  SUPABASE_DB_USER: ${{ vars.SUPABASE_DB_USER }}
+
+jobs:
+  deploy:
+    name: Deploy reviewed migrations to development
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: development
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGHOST: ${{ vars.SUPABASE_DB_HOST }}
+      PGPORT: ${{ vars.SUPABASE_DB_PORT }}
+      PGDATABASE: ${{ vars.SUPABASE_DB_NAME }}
+      PGUSER: ${{ vars.SUPABASE_DB_USER }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGSSLMODE: require
+      PGCONNECT_TIMEOUT: '10'
+      PGOPTIONS: -c statement_timeout=30000 -c lock_timeout=5000
+
+    steps:
+      - name: Check out trusted workflow revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify and check out explicitly selected commit
+        env:
+          TARGET_COMMIT_SHA: ${{ inputs.commit_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "${TARGET_COMMIT_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The selected commit must be a full lowercase SHA." >&2
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          git cat-file -e "${TARGET_COMMIT_SHA}^{commit}"
+          git merge-base --is-ancestor "${TARGET_COMMIT_SHA}" origin/main
+          git checkout --detach "${TARGET_COMMIT_SHA}"
+          echo "Checked out a reviewed commit reachable from main."
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate required development environment values
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            SUPABASE_ACCESS_TOKEN
+            SUPABASE_PROJECT_ID
+            SUPABASE_DB_PASSWORD
+            SUPABASE_EXPECTED_PROJECT_NAME
+            SUPABASE_EXPECTED_REGION
+            SUPABASE_DB_HOST
+            SUPABASE_DB_PORT
+            SUPABASE_DB_NAME
+            SUPABASE_DB_USER
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing required development environment value: ${name}" >&2
+              exit 1
+            fi
+          done
+          echo "Required development environment values are present."
+
+      - name: Run repository and migration preflight
+        run: |
+          python scripts/check_repository_hygiene.py
+          python scripts/phase_2e_preflight.py
+
+      - name: Verify pinned Supabase CLI
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} --version
+
+      - name: Prove the target is the approved development project
+        run: python scripts/verify_development_target.py
+
+      - name: Link the ephemeral runner to development
+        shell: bash
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} link
+          --project-ref "${SUPABASE_PROJECT_ID}"
+          --password "${SUPABASE_DB_PASSWORD}"
+
+      - name: Apply the committed closed Auth configuration
+        run: >-
+          npx --yes supabase@${SUPABASE_CLI_VERSION} config push
+          --project-ref "${SUPABASE_PROJECT_ID}"
+
+      - name: Verify closed Auth and Data API exposure
+        run: >-
+          python scripts/verify_development_target.py
+          --require-closed-auth
+          --report "${RUNNER_TEMP}/target-verification.json"
+
+      - name: Capture remote migration preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} migration list --linked \
+            > "${RUNNER_TEMP}/migrations-before.txt"
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db push --linked --dry-run \
+            > "${RUNNER_TEMP}/migration-dry-run.txt"
+          python scripts/summarize_phase_2e_output.py \
+            migrations "${RUNNER_TEMP}/migration-dry-run.txt"
+
+      - name: Apply committed migrations
+        run: npx --yes supabase@${SUPABASE_CLI_VERSION} db push --linked
+
+      - name: Verify remote migration history matches Git
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} migration list --linked \
+            > "${RUNNER_TEMP}/migrations-after.txt"
+          python scripts/phase_2e_preflight.py \
+            --migration-list "${RUNNER_TEMP}/migrations-after.txt" \
+            --expect-remote matching \
+            --report "${RUNNER_TEMP}/migration-verification.json"
+
+      - name: Verify hosted catalogs, RLS, grants, and cron
+        run: >-
+          psql -X --no-psqlrc --quiet
+          --set ON_ERROR_STOP=1
+          --file supabase/validation/phase_2e_catalog_security.sql
+
+      - name: Run hosted Security Advisor
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors --linked \
+            --type security --level info --fail-on none \
+            > "${RUNNER_TEMP}/security-advisor.txt"
+          python scripts/summarize_phase_2e_output.py \
+            advisors "${RUNNER_TEMP}/security-advisor.txt"
+
+      - name: Run hosted Performance Advisor
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@${SUPABASE_CLI_VERSION} db advisors --linked \
+            --type performance --level info --fail-on none \
+            > "${RUNNER_TEMP}/performance-advisor.txt"
+          python scripts/summarize_phase_2e_output.py \
+            advisors "${RUNNER_TEMP}/performance-advisor.txt"
+
+      - name: Write sanitized deployment summary
+        shell: bash
+        run: |
+          deployed_sha="$(git rev-parse HEAD)"
+          {
+            echo "## Supabase development deployment"
+            echo
+            echo "- Target: approved credit-accounting development project"
+            echo "- Commit: \`${deployed_sha}\`"
+            echo "- Migration history: matches committed files"
+            echo "- Closed Auth and Data API boundary: verified"
+            echo "- Catalog, RLS, grants, function paths, and cron: verified"
+            echo "- Security and Performance Advisors: executed; inspect step summaries"
+            echo "- Remote reset/restore: not used"
+            echo "- Production: not touched"
+          } >> "${GITHUB_STEP_SUMMARY}"

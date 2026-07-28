@@ -14,6 +14,7 @@ DISALLOWED_SUFFIXES = {
     ".bak",
     ".backup",
     ".db",
+    ".dump",
     ".key",
     ".pem",
     ".sqlite",
@@ -21,12 +22,21 @@ DISALLOWED_SUFFIXES = {
 }
 DISALLOWED_PARTS = {
     ".temp",
+    ".local-backups",
+    ".local-state",
     "node_modules",
     "target",
 }
 SECRET_PATTERNS = {
     "JWT-like token": re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\."),
     "Supabase secret key": re.compile(r"\bsb_secret_[A-Za-z0-9_-]{16,}\b"),
+    "Supabase personal access token": re.compile(
+        r"\bsbp_[A-Za-z0-9_-]{16,}\b"
+    ),
+    "PostgreSQL connection string": re.compile(
+        r"\bpostgres(?:ql)?://[^ \t\r\n\"']+:[^ \t\r\n\"']+@",
+        re.IGNORECASE,
+    ),
     "private key block": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
 }
 
@@ -42,8 +52,8 @@ def git(*arguments: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def tracked_files() -> list[Path]:
-    result = git("ls-files", "-z")
+def repository_files() -> list[Path]:
+    result = git("ls-files", "--cached", "--others", "--exclude-standard", "-z")
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or "git ls-files failed")
     return [ROOT / name for name in result.stdout.split("\0") if name]
@@ -51,7 +61,7 @@ def tracked_files() -> list[Path]:
 
 def main() -> int:
     failures: list[str] = []
-    files = tracked_files()
+    files = repository_files()
 
     for path in files:
         relative = path.relative_to(ROOT)
@@ -64,6 +74,8 @@ def main() -> int:
             failures.append(f"tracked environment file: {relative}")
         if path.suffix.lower() in DISALLOWED_SUFFIXES:
             failures.append(f"tracked runtime/secret suffix: {relative}")
+        if lower_name.endswith(".sql.gz"):
+            failures.append(f"tracked compressed SQL backup: {relative}")
         if lower_parts & DISALLOWED_PARTS:
             failures.append(f"tracked generated directory content: {relative}")
 
@@ -112,7 +124,7 @@ def main() -> int:
         return 1
 
     print(
-        f"PASS: checked {len(files)} tracked files; no runtime artifacts, "
+        f"PASS: checked {len(files)} repository files; no runtime artifacts, "
         "key material, token-shaped secrets, disabled RLS, broad true policies, "
         "or mutable GitHub Action refs found."
     )
