@@ -8,6 +8,11 @@ was empty, so the findings contain no production cardinality, selectivity, or
 query-plan evidence. This review does not add indexes to the privilege
 hardening migration.
 
+The read-only Advisor rerun after deployment of migration 25 reported the same
+62 `unindexed_foreign_keys` findings and 115 `unused_index` findings. Migration
+25 changed privileges and default ACLs, not indexes; no performance finding
+was added, removed, or modified.
+
 Catalog review confirmed that every flagged foreign key already has a valid
 index whose first key is the foreign key's first referencing column. Those
 first columns are UUID identity or scope columns and are the columns used by

@@ -31,20 +31,25 @@
 
 ## Database and API
 
-- [x] Remote history exactly matches the original 24 deployed migrations; the
-      local migration 25 is explicitly pending separate deployment approval.
-- [x] `app_private` is absent from Data API schemas.
+- [x] Remote history exactly matches all 25 committed local migrations.
+- [x] Data API exposure is limited to `public` and `graphql_public`;
+      `app_private` and `cron` are absent and automatic new-table exposure is
+      off.
 - [x] All expected exposed tables have enabled and forced RLS.
 - [x] No broad true policy or view bypass exists.
 - [x] Definer functions have fixed empty search paths.
 - [x] `PUBLIC` and `anon` cannot execute privileged application functions.
 - [x] Authenticated execution matches the 11-public-RPC and private-helper
       allowlists.
-- [ ] The hosted project has applied migration 25 so clients and
+- [x] The hosted project has applied migration 25 so clients and
       `service_role` cannot mutate raw financial, audit, interest,
       correction, or reversal evidence.
-- [x] Local migration 25 removes every current `service_role` public table,
-      sequence, and RPC grant; both hosted allowlists are intentionally empty.
+- [x] Hosted migration 25 removes every current `service_role` public
+      application-table, sequence, and application-RPC grant; both hosted
+      allowlists are intentionally empty.
+- [x] `authenticated` has only RLS-scoped `SELECT` on the three interest
+      evidence tables.
+- [x] `audit_events` has no service-role mutation or maintenance privilege.
 - [x] `postgres` default ACLs keep future public tables, sequences, and
       functions private until explicitly granted.
 - [x] Exactly one credential-free, non-HTTP cron job exists.
@@ -52,8 +57,10 @@
       unreachable, extension-owned PUBLIC object ACLs.
 - [x] Hosted Security and Performance Advisor codes were reviewed and
       dispositioned.
-- [ ] Rerun hosted catalogs and both Advisors after separately approved
-      deployment of migration 25.
+- [x] Hosted catalogs and both Advisors were rerun read-only after migration
+      25; the catalog verifier passed, Security Advisor retained exactly 11
+      allowlisted rule-0029 warnings, and Performance Advisor retained 62
+      unindexed-FK plus 115 unused-index informational findings.
 
 ## Validation, backup, and operations
 

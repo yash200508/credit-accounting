@@ -39,7 +39,8 @@ reset or overwrite an existing project to make it fit.
 
 ## Closed Auth posture
 
-- Global public signup disabled; existing fake users may sign in.
+- Global public signup disabled; separately approved fake users may sign in
+  after they are created.
 - Anonymous sign-ins disabled.
 - Email is the only enabled identity provider needed by the fake users.
 - Social OAuth and manual linking disabled.
@@ -49,36 +50,51 @@ reset or overwrite an existing project to make it fit.
 - Authorization comes from protected membership and role tables, never
   user-editable metadata.
 
-Seven obviously fake `.example.test` identities support two owners,
+Seven planned `.example.test` identities will support two owners,
 maker-checker, manager, attendant, customer, driver, and cross-tenant
-isolation. Their generated passwords live only in ignored local state.
+isolation. They have not been created. After separate approval, their
+generated passwords will live only in ignored local state.
 
 ## API and database posture
 
-The Data API schema list contains `public` and does not contain `app_private`.
-All 30 application tables in `public` have enabled and forced RLS. The `anon`
-role has no application access. Trusted mutation RPCs are granted to
-`authenticated`. Most financial and correction objects already have the
-intended raw-grant posture; hosted legacy grants on the 15 foundation tables,
-the three authenticated interest-evidence tables, and four service-role RPCs
-remain until migration 25 receives separate deployment approval.
+The live Data API exposes only `public` and `graphql_public`; `app_private` and
+`cron` remain unexposed, and automatic new-table exposure is off. All 30
+application tables in `public` have enabled and forced RLS. The `anon` role
+has no application access. The `authenticated` role has only RLS-scoped
+`SELECT` on `interest_accrual_components`, `interest_accrual_runs`, and
+`interest_accruals`, plus execution of the 11 reviewed `SECURITY DEFINER`
+application RPCs.
 
-Migration 25, currently local and not remotely deployed, removes all current
-public table, sequence, and RPC grants from `service_role`; that allowlist is
-intentionally empty. It also revokes all generated authenticated privileges
-from the three interest-evidence tables before restoring only RLS-scoped
-`SELECT`, and makes future `postgres`-owned public objects private by default.
+Migration 25 is deployed to the isolated development project. It removes all
+public application-table and application-RPC grants from `service_role`; both
+allowlists are intentionally empty. `audit_events` has no service-role
+mutation or maintenance privilege. The migration also activates default-ACL
+hardening so future `postgres`-owned public tables, sequences, and functions
+remain private until a reviewed migration grants access explicitly.
 
 The database uses the committed hourly pg_cron job, with no HTTP call or
-credential. No service API key is stored in GitHub: the one-time fake-user
-bootstrap obtains a server-only key into process memory from the authenticated
-CLI and discards it.
+credential. It is registered exactly once as
+`credit-accounting-hourly-interest-accrual`, scheduled at `7 * * * *`, and
+executes only `select app_private.run_hourly_interest_accrual();`. The
+scheduler has not been manually invoked, and a real wall-clock firing has not
+yet been evidenced. No service API key is stored in GitHub; the separately
+approval-gated fake-user bootstrap is designed to obtain a server-only key
+into process memory from the authenticated CLI and discard it.
 
 ## Current status
 
 Repository controls, project creation/linking, empty-state inspection, the
-first 24 hosted migrations, and read-only catalog/advisor verification are
-complete. Fake Auth creation, controlled interest execution, hosted behavior
-tests, backup/restore evidence, GitHub secrets, and deployment of local
-migration 25 remain behind separate approval gates. Actual evidence is tracked
-in `phase-2e-validation-results.md`.
+deployment of all 25 migrations, and read-only hosted catalog/security
+verification are complete. Local and remote migration histories match
+exactly, and the committed hosted verifier passes. Security Advisor still
+reports exactly the 11 expected allowlisted rule-0029 warnings; Performance
+Advisor still reports 62 unindexed-foreign-key and 115 unused-index
+informational findings.
+
+The development project contains no real customer data. Fake Auth/bootstrap
+data, hosted functional and concurrency testing, controlled interest
+execution, wall-clock cron evidence, backup/restore evidence, and GitHub
+development secrets/environment configuration remain behind separate approval
+gates. No production project exists within this Phase 2E deployment scope, and
+the excluded pre-existing Supabase project remains untouched. Actual evidence
+is tracked in `phase-2e-validation-results.md`.

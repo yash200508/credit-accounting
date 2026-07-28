@@ -188,5 +188,8 @@ Phase 2E reduces development deployment risk but does not add production
 capacity, recovery guarantees, monitoring service, client abuse protection, or
 an independent professional review.
 
-Migration 25 implements the three hardening controls above locally but has not
-yet been deployed to the hosted development project.
+Migration 25 implements the three hardening controls above and is deployed to
+the isolated hosted development project. The committed catalog/security
+verifier passes against the hosted state, and all 25 migration versions match
+locally and remotely. This automated/internal evidence is not a substitute for
+an independent professional security review.

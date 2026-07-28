@@ -8,8 +8,9 @@
 - Environment boundary: linked project `pjjbjeqkktxnphavolvf`, development and
   fake data only
 - Production, real data, Flutter, Next.js, and QR next slice: untouched
-- Hosted migration head remains the original 24 migrations. The new privilege
-  hardening migration is committed locally only and is **not deployed**.
+- Hosted migration head is migration 25,
+  `20260727213829_phase_2e_privilege_default_acl_hardening.sql`. All 25
+  migration versions match locally and remotely.
 
 ## Official behavior reviewed
 
@@ -60,16 +61,16 @@ skipped result is never a pass.
 | Project creation / region / plan | PASS; `credit-accounting-development`, Mumbai `ap-south-1`, Free/Nano, US$0 upfront and US$0/month |
 | Link and empty-state preflight | PASS; exact reference verified; zero Auth users and no application objects before deployment |
 | GitHub `development` Environment and secrets | Pending explicit approval |
-| Remote migration application/history | PASS for the original 24 migrations; local and remote history matched |
-| Hosted catalogs/RLS/grants/Data API | PASS with privilege findings requiring the local migration documented below |
+| Remote migration application/history | PASS; migration 25 deployed successfully and all 25 local and remote versions match |
+| Hosted catalogs/RLS/grants/Data API | PASS after migration 25; privilege/default-ACL hardening and Data API exposure verified |
 | Security Advisor codes/dispositions | Reviewed; 11 instances of `0029_authenticated_security_definer_function_executable` are intentional allowlisted RPCs |
 | Performance Advisor codes/dispositions | Reviewed; 62 composite-FK and 115 fresh-project unused-index findings triaged separately |
-| Closed Auth verification | Read-only configuration reviewed; fake-user creation remains pending |
+| Closed Auth verification | Read-only configuration reviewed; no real or fake users exist and fake-user creation remains pending |
 | Fake Auth/bootstrap | Pending explicit approval |
 | Functional smoke (23 checks) | Pending |
 | Four hosted concurrency races | Pending |
 | Controlled interest cycle | Pending explicit approval |
-| Cron registration | PASS; exactly one unchanged hourly job owned by `postgres` |
+| Cron registration | PASS; exactly one unchanged hourly job owned by `postgres`; scheduler not manually invoked |
 | Actual wall-clock cron execution | Unverified |
 | Logical backup and manifest checksum | Pending |
 | Disposable local restore/reconciliation | PASS with synthetic fake-only local dump; hosted-origin backup remains pending |
@@ -79,8 +80,9 @@ The organization is `surya lakshmi fuels point`. Its earlier non-matching
 Mumbai project remains excluded and untouched. A separately approved Free/Nano
 project named `credit-accounting-development` was created in `ap-south-1`,
 linked by exact reference, inspected while empty, and received only the first
-24 committed migrations. No seed, bootstrap, fake Auth user, hosted test,
-configuration change, real data, reset, restore, or paid feature was applied.
+25 committed migrations. No seed, bootstrap, fake Auth user, hosted test,
+scheduler invocation, configuration change, real data, reset, restore, or paid
+feature was applied.
 
 The same read-only check confirmed that Free permits two active projects, the
 existing active project consumes one slot, and one slot remains. Mumbai's
@@ -95,13 +97,20 @@ charge, upgrade, add-on, or paid feature was accepted.
 
 The post-deployment read-only verification found:
 
-- all 24 remote migration versions matched the committed 24-version history;
+- all 25 remote migration versions matched the committed 25-version history;
 - 30 expected `public` application tables, no unexpected application table or
   view, forced RLS on every application table, and no broad `true` policy;
 - `app_private` present as the internal schema but absent from the live Data
-  API schema list; only `public` and `graphql_public` were exposed;
+  API schema list; only `public` and `graphql_public` were exposed, `cron`
+  remained unexposed, and automatic new-table exposure remained off;
 - required `btree_gist` in `extensions` and managed `pg_cron` installed;
 - fixed empty `search_path` on reviewed `public` and `app_private` functions;
+- only RLS-scoped authenticated `SELECT` on the three interest-evidence
+  tables, zero `service_role` public application-table privileges, zero
+  `service_role` application-RPC grants, and no service-role
+  mutation/maintenance privilege on `audit_events`;
+- active safe default ACLs for future `postgres`-owned public tables,
+  sequences, and functions;
 - one active job named `credit-accounting-hourly-interest-accrual`, scheduled
   at `7 * * * *`, executing only
   `select app_private.run_hourly_interest_accrual();` as `postgres`;
@@ -111,8 +120,9 @@ The post-deployment read-only verification found:
   fresh-project `unused_index` findings.
 
 No unexpected schema, migration, trigger, business function, policy, or cron
-job drift was found. The security blocker was privilege drift caused by
-legacy automatic Data API grants and incomplete earlier revocations.
+job drift was found. The committed hosted catalog/security verifier passed.
+Migration 25 resolved the privilege drift caused by legacy automatic Data API
+grants and incomplete earlier revocations.
 
 ## Privilege root causes and decisions
 
@@ -228,8 +238,9 @@ for the current workload; no composite index is added without realistic
 query-plan evidence. The 115 unused-index findings are not actionable on an
 empty fresh project and no index is removed.
 
-**Deployment status:** the privilege/default-ACL migration has not been
-applied to the hosted project. Hosted state remains at migration 24.
+**Deployment status:** the privilege/default-ACL migration was applied
+successfully to the isolated hosted development project. Hosted and local
+state both contain the same 25 committed migrations.
 
 ## Local repository-control validation
 
@@ -293,10 +304,12 @@ The pre-landing and security fallback review found and fixed:
    mutation.
 
 No unresolved critical or high-confidence security finding remains in the
-local Phase 2E diff. Hosted advisors and live catalog state were reviewed
-before this migration; a separately approved deployment and read-only
-post-deployment rerun are still required before the hosted findings can be
-closed.
+Phase 2E migration or its verified hosted catalog state. The separately
+approved deployment and read-only post-deployment catalog, Data API, Security
+Advisor, and Performance Advisor reruns are complete. Security Advisor still
+reports exactly the 11 intentional allowlisted rule-0029 warnings. Performance
+Advisor still reports 62 unindexed-foreign-key and 115 unused-index
+informational findings; neither advisor result was altered or overstated.
 
 An OWASP Dependency-Check 12.2.2 Maven scan was also attempted. Its
 vulnerability-feed update did not finish within the 20-minute bound and
@@ -308,6 +321,10 @@ SimpleLogger fallback warning; it did not affect compilation or tests.
 ## Known limitations
 
 No client, real-data migration, production project, production workflow,
-managed backup, PITR, recovery objective, wall-clock scheduler proof, load
-test, completed software-composition vulnerability report, or independent
-professional security/financial review is part of this phase.
+managed backup, PITR, recovery objective, manual scheduler invocation,
+wall-clock scheduler proof, hosted functional/concurrency test, load test,
+completed software-composition vulnerability report, GitHub development
+secrets/environment configuration, or independent professional
+security/financial review is part of the completed work to date. No real
+customer data or fake Auth/bootstrap data exists in the development project,
+and the excluded pre-existing Supabase project remains untouched.
