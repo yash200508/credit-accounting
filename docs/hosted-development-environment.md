@@ -78,24 +78,28 @@ credential. It is registered exactly once as
 `credit-accounting-hourly-interest-accrual`, scheduled at `7 * * * *`, and
 executes only `select app_private.run_hourly_interest_accrual();`. The
 scheduler has not been manually invoked, and a real wall-clock firing has not
-yet been evidenced. No service API key is stored in GitHub; the separately
-approval-gated fake-user bootstrap is designed to obtain a server-only key
-into process memory from the authenticated CLI and discard it.
+been formally tested. One incidental zero-work `SCHEDULER` run is present; no
+wait or manual invocation produced it. No service API key is stored in GitHub;
+the separately approval-gated fake-user bootstrap is designed to obtain a
+server-only key into process memory from the authenticated CLI and discard it.
 
 ## Current status
 
 Repository controls, project creation/linking, deployment of all 25
 migrations, read-only hosted catalog/security verification, and the approved
-fake Auth/application bootstrap are complete. Local and remote migration
-histories match exactly, and the committed hosted verifier passes. The
-bootstrap contains one clearly synthetic organization and Mumbai station,
-seven fake profiles, one customer/account/driver, Petrol and Diesel, and one
-18% development interest policy. All financial evidence tables remain empty.
+fake Auth/application bootstrap and hosted functional/authorization smoke are
+complete. Local and remote migration histories match exactly, and the
+committed hosted verifier passes. The project contains the primary synthetic
+organization/Mumbai station, the approved minimal isolation organization and
+station, exactly seven fake Auth users, Petrol and Diesel, one baseline
+customer/account/driver, and immutable synthetic smoke history. The successful
+run is `03FAFE4C03CA`; its 8 ledger transactions and 16 entries all balance.
 
-The development project contains no real customer data. Hosted functional and
-concurrency testing, controlled interest execution, wall-clock cron evidence,
-hosted-origin backup/restore evidence, and GitHub development
-secrets/environment configuration remain behind separate approval gates. No
-production project exists within this Phase 2E deployment scope, and the
-excluded pre-existing Supabase project remains untouched. Actual evidence is
-tracked in `phase-2e-validation-results.md`.
+The development project contains no real customer data. Hosted concurrency
+testing, formal wall-clock cron evidence, hosted-origin backup/restore
+evidence, and GitHub development secrets/environment configuration remain
+behind separate approval gates. No production project exists within this
+Phase 2E deployment scope, and the excluded pre-existing Supabase project
+remains untouched. Complete run-scoped and whole-project reconciliation,
+including retained interrupted synthetic attempts, is tracked in
+`phase-2e-validation-results.md`.
