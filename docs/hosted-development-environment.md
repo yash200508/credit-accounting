@@ -78,24 +78,37 @@ credential. It is registered exactly once as
 `credit-accounting-hourly-interest-accrual`, scheduled at `7 * * * *`, and
 executes only `select app_private.run_hourly_interest_accrual();`. The
 scheduler has not been manually invoked, and a real wall-clock firing has not
-yet been evidenced. No service API key is stored in GitHub; the separately
-approval-gated fake-user bootstrap is designed to obtain a server-only key
-into process memory from the authenticated CLI and discard it.
+been formally tested as a dedicated gate. Natural zero-work `SCHEDULER` runs
+are present; the 18:07 UTC run immediately before hosted concurrency testing
+succeeded and did not overlap the smoke window. No wait or manual invocation
+produced it. No service API key is stored in GitHub;
+the separately approval-gated fake-user bootstrap is designed to obtain a
+server-only key into process memory from the authenticated CLI and discard it.
 
 ## Current status
 
 Repository controls, project creation/linking, deployment of all 25
 migrations, read-only hosted catalog/security verification, and the approved
-fake Auth/application bootstrap are complete. Local and remote migration
-histories match exactly, and the committed hosted verifier passes. The
-bootstrap contains one clearly synthetic organization and Mumbai station,
-seven fake profiles, one customer/account/driver, Petrol and Diesel, and one
-18% development interest policy. All financial evidence tables remain empty.
+fake Auth/application bootstrap, hosted functional/authorization smoke, and
+four-race hosted concurrency smoke are complete. Local and remote migration
+histories match exactly, and the
+committed hosted verifier passes. The project contains the primary synthetic
+organization/Mumbai station, the approved minimal isolation organization and
+station, exactly seven fake Auth users, Petrol and Diesel, one baseline
+customer/account/driver, and immutable synthetic smoke history. Functional run
+`03FAFE4C03CA` produced 8 balanced ledger transactions and 16 entries.
+Concurrency run `E6C1546C6CCE` produced seven balanced transactions and 14
+entries across the four dedicated fake accounts. It proved one-winner
+fuel/repayment serialization, one logical interest accrual with an idempotent
+replay, and one correction execution with a terminal replay. There were no
+deadlocks, timeouts, unknown commit states, infrastructure failures, or
+partial rows.
 
-The development project contains no real customer data. Hosted functional and
-concurrency testing, controlled interest execution, wall-clock cron evidence,
-hosted-origin backup/restore evidence, and GitHub development
-secrets/environment configuration remain behind separate approval gates. No
-production project exists within this Phase 2E deployment scope, and the
-excluded pre-existing Supabase project remains untouched. Actual evidence is
-tracked in `phase-2e-validation-results.md`.
+The development project contains no real customer data. Formal controlled
+hosted scheduler/interest-cycle validation, hosted-origin backup/restore
+evidence, and GitHub development secrets/environment configuration remain
+behind separate approval gates. No production project exists within this
+Phase 2E deployment scope, and the excluded pre-existing Supabase project
+remains untouched. Complete run-scoped and whole-project reconciliation,
+including retained interrupted synthetic attempts, is tracked in
+`phase-2e-validation-results.md`.
