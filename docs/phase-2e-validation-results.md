@@ -2,7 +2,7 @@
 
 ## Scope and starting point
 
-- Branch: `codex/phase-2e-remote-dev-hardening`
+- Branch: `codex/phase-2e-hosted-validation-completion`
 - Hardening starting commit: `cae774d2bad2ae34e7425edf94ecdd590931e5c7`
 - Phase 2D PR: #12, present in merged history
 - Environment boundary: linked project `pjjbjeqkktxnphavolvf`, development and
@@ -14,7 +14,8 @@
 
 ## Official behavior reviewed
 
-Reviewed on 2026-07-27:
+Reviewed on 2026-07-27, with hosted connection behavior rechecked on
+2026-08-14:
 
 - Supabase changelog breaking changes
 - deployment and environment management
@@ -68,10 +69,10 @@ skipped result is never a pass.
 | Closed Auth verification | PASS; seven expected fake users, seven identities, protected development markers, and zero unexpected users |
 | Fake Auth/bootstrap | PASS; minimum deterministic fake application state created with all financial evidence tables empty |
 | Hosted functional + authorization smoke | PASS; run `03FAFE4C03CA` completed the full approved matrix with 8 balanced ledger transactions and zero failed-request partial rows |
-| Four hosted concurrency races | Pending |
+| Four hosted concurrency races | PASS; run `E6C1546C6CCE`, four bounded two-session races, seven balanced run transactions, and zero partial state |
 | Controlled interest cycle | PASS; approved private `TEST` path posted 8 paise for the successful run using two 365-day simple-interest components; private Data API access remained denied |
 | Cron registration | PASS; exactly one unchanged hourly job owned by `postgres`; scheduler was not manually invoked |
-| Actual wall-clock cron execution | One incidental zero-work `SCHEDULER` run observed; no wait or manual invocation was performed, so this is not treated as a formal wall-clock test |
+| Actual wall-clock cron execution | Natural zero-work `SCHEDULER` runs observed; no wait or manual invocation was performed, so this is not treated as a formal wall-clock test |
 | Logical backup and manifest checksum | Pending |
 | Disposable local restore/reconciliation | PASS with synthetic fake-only local dump; hosted-origin backup remains pending |
 | Final complete local suite | PASS after final repository changes |
@@ -210,11 +211,12 @@ requests, 4 correction events, 1 reversal, and 14 audit events. Every ledger
 transaction had exactly two entries and equal positive debit/credit totals.
 Every intentionally denied request had zero count drift.
 
-Nine earlier harness attempts stopped on test-code assertions after some
-already-successful synthetic RPCs had committed. Those rows were not deleted
-or rewritten because the financial evidence is intentionally immutable.
-They remain development-only evidence, not partial rows from a failed
-database operation. The final whole-project reconciliation therefore reports
+Nine earlier functional-harness attempts stopped on test-code assertions
+after some already-successful synthetic RPCs had committed. Those rows were
+not deleted or rewritten because the financial evidence is intentionally
+immutable. They remain development-only evidence, not partial rows from a
+failed database operation. The post-functional-smoke reconciliation at that
+gate reported
 31 fake customers/accounts (the original baseline plus ten three-customer
 attempts), 18 fuel sales, 13 repayments/allocations, 26 interest
 accruals/components, 61 ledger transactions with 122 entries, 31 completed
@@ -227,13 +229,89 @@ principal.
 Whole-project checks found zero unbalanced ledger transactions, zero
 incomplete idempotency records, zero failed interest runs, zero isolation
 tenant financial transactions, and zero unexpected Auth/customer/organization
-markers. The Auth population remains exactly seven fake identities. The
-post-smoke hosted catalog verifier passed again; migration history remains
+markers. At that gate, the Auth population remained exactly seven fake
+identities. The post-smoke hosted catalog verifier passed again; migration history remains
 25/25, forced RLS remains 30/30, service-role table and public-RPC grants
 remain zero, the authenticated definer allowlist remains exactly 11, default
 ACL hardening remains intact, and the one cron registration is unchanged.
 The live Data API remains `public` plus `graphql_public`, with `app_private`
 unexposed and automatic new-table exposure off.
+
+## Hosted concurrency smoke
+
+The repository-controlled hosted harness is
+`supabase/tests/remote/phase_2e_concurrency_smoke.py`. It uses two independent
+TLS database sessions per race through the Mumbai Supavisor session-mode
+endpoint on port 5432. It obtains an official short-lived CLI login role into
+process memory, assumes the same `postgres` role used by the CLI for database
+operations, and never prints or persists the credential or connection string.
+It binds the exact project reference, project name, region, local link, and
+25-version migration history before any write.
+
+Successful run `E6C1546C6CCE` was low-volume deterministic smoke testing, not
+load or stress testing:
+
+- Fuel overspending: racer A committed 70,000 paise and racer B waited, then
+  rolled back with `FCP_INSUFFICIENT_CREDIT`. The 100,000-paise limit ended at
+  70,000 paise principal and 30,000 paise available credit, with one sale, one
+  transaction, two balanced entries, one success audit, one completed
+  idempotency record, and no loser partial state.
+- Competing repayment: racer A committed a 70,000-paise principal repayment;
+  racer B waited, then rolled back with `RPP_PRINCIPAL_EXCEEDS_DUE`. The
+  100,000-paise starting principal ended at 30,000 paise with 170,000 paise
+  available credit, one repayment/allocation, one balanced transaction with
+  two entries, one success audit, and no loser partial state.
+- Duplicate interest: the two sessions targeted 2026-08-13 on a dedicated
+  36,501-paise principal fixture. Racer A created the logical accrual and racer
+  B waited, then committed the idempotent replay. Exactly one accrual, one
+  component, one 18-paise interest transaction, two balanced entries, and one
+  audit exist. Raw interest was 18.000493150684931507 paise and the closing
+  fractional carry is 0.000493150684931507 paise.
+- Correction approval: a Manager-created `REVERSAL_ONLY` request started
+  `PENDING_REVIEW` at version 1. Owner A executed it; Owner B waited and then
+  committed the terminal idempotent replay. The final request is
+  `APPROVED_AND_EXECUTED` at version 2 with exactly one approval event, one
+  reversal, one balanced two-entry reversal transaction, no replacement, and
+  an unchanged original-transaction fingerprint.
+
+The seven run-scoped transactions contain 14 entries and reconcile to
+476,519 paise of debits and 476,519 paise of credits. There were zero
+unbalanced transactions, incomplete idempotency records, unfinished interest
+runs, unknown commit states, deadlocks, lock timeouts, statement timeouts, or
+infrastructure failures. Four delayed racers showed material waits and then
+reached deterministic outcomes. Network retry count was zero, all successful
+append-only records remain, and no cleanup `DELETE` was performed.
+
+One natural zero-work wall-clock scheduler invocation completed successfully
+at 18:07 UTC immediately before the run window. It was not manually invoked
+and did not overlap the smoke run; the harness observed zero incidental cron
+runs between its own before/after snapshots. The one registered job, schedule,
+command, owner, and active state remained unchanged.
+
+Post-run verification found 35 synthetic customers/accounts, 21 fuel sales,
+14 repayments/allocations, 239 interest accruals/components, 280 ledger
+transactions with 560 entries, 35 completed and zero incomplete idempotency
+records, 9 correction requests, 19 correction events, 5 reversals, and 328
+audit events. The larger interest/audit totals include normal historical
+scheduled processing of synthetic fixtures. Whole-project checks still found
+zero unbalanced transactions and zero unfinished interest runs.
+
+The committed catalog/security verifier passed both before and after the
+races: migration history is 25/25, forced RLS is 30/30, raw financial mutation
+grants are zero, service-role application-table and RPC grants are zero, the
+authenticated definer allowlist remains exactly 11, default ACL hardening is
+unchanged, and the live Data API remains only `public` plus `graphql_public`.
+`app_private` and `cron` remain unexposed, with no schema, function, grant, or
+cron drift.
+
+No network or unknown-commit retry occurred. During harness shakeout, early
+attempts stopped before a race because of temporary-role/catalog result
+handling, a planner-time reference to non-returned RPC columns, and an
+authenticated call to a private verifier. Each attempt was reconciled before
+continuing; the planner failures made no application mutation, and the one
+transactional attempt rolled back completely. Immediately before the
+successful run there were zero hosted-concurrency fixtures, incomplete
+idempotency records, unfinished interest runs, or unbalanced transactions.
 
 ## Privilege root causes and decisions
 
@@ -370,6 +448,9 @@ state both contain the same 25 committed migrations.
   explicitly.
 - Workflow YAML parse: PASS.
 - Hosted functional harness syntax and wrong-target fail-closed check: PASS.
+- Hosted concurrency harness: PASS against the exact development target; run
+  `E6C1546C6CCE`, four bounded races, sanitized ignored evidence, and zero
+  network retries or partial state.
 - Repository hygiene: PASS across 179 tracked/untracked non-ignored files.
 - `git diff --check`: PASS.
 
@@ -391,6 +472,7 @@ state both contain the same 25 committed migrations.
 | Sanitized operations queries | PASS |
 | Phase 2E migration preflight | PASS, 25 committed migrations; head `20260727213829` |
 | Hosted functional harness | PASS; syntax, exact target binding, ordinary-JWT actor matrix, sanitized evidence |
+| Hosted concurrency harness | PASS; run `E6C1546C6CCE`, four two-session races, exact reconciliation, sanitized ignored evidence |
 | Repository hygiene | PASS, 179 files inspected |
 | `git diff --check` | PASS |
 
@@ -435,7 +517,7 @@ SimpleLogger fallback warning; it did not affect compilation or tests.
 
 No client, real-data migration, production project, production workflow,
 managed backup, PITR, recovery objective, manual scheduler invocation,
-formal wall-clock scheduler proof, hosted concurrency test, load test,
+controlled hosted scheduler/interest-cycle validation, load test,
 completed software-composition vulnerability report, GitHub development
 secrets/environment configuration, or independent professional
 security/financial review is part of the completed work to date. No real
