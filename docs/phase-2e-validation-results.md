@@ -70,9 +70,10 @@ skipped result is never a pass.
 | Fake Auth/bootstrap | PASS; minimum deterministic fake application state created with all financial evidence tables empty |
 | Hosted functional + authorization smoke | PASS; run `03FAFE4C03CA` completed the full approved matrix with 8 balanced ledger transactions and zero failed-request partial rows |
 | Four hosted concurrency races | PASS; run `E6C1546C6CCE`, four bounded two-session races, seven balanced run transactions, and zero partial state |
-| Controlled interest cycle | PASS; approved private `TEST` path posted 8 paise for the successful run using two 365-day simple-interest components; private Data API access remained denied |
+| Functional internal TEST interest cycle | PASS; the earlier approved private `TEST` path posted 8 paise using two 365-day simple-interest components; private Data API access remained denied |
+| Controlled scheduler/interest cycle | PASS; replacement run `A0900425DE9C` completed exactly one controlled work call and one immediate zero-work rerun with exact interest, carry, ledger, audit, and security reconciliation |
 | Cron registration | PASS; exactly one unchanged hourly job owned by `postgres`; scheduler was not manually invoked |
-| Actual wall-clock cron execution | Natural zero-work `SCHEDULER` runs observed; no wait or manual invocation was performed, so this is not treated as a formal wall-clock test |
+| Actual wall-clock cron execution | OBSERVED; natural run 430 succeeded with zero work and natural run 431 succeeded with positive work (18 account-days, 18 accruals, 17 components, 117 paise) |
 | Logical backup and manifest checksum | Pending |
 | Disposable local restore/reconciliation | PASS with synthetic fake-only local dump; hosted-origin backup remains pending |
 | Final complete local suite | PASS after final repository changes |
@@ -288,8 +289,119 @@ and did not overlap the smoke run; the harness observed zero incidental cron
 runs between its own before/after snapshots. The one registered job, schedule,
 command, owner, and active state remained unchanged.
 
-Post-run verification found 35 synthetic customers/accounts, 21 fuel sales,
-14 repayments/allocations, 239 interest accruals/components, 280 ledger
+## Controlled hosted scheduler validation
+
+Current Supabase Cron, pg_cron, database-function, and breaking-change
+documentation was reviewed again on 2026-08-18. Supabase Cron is backed by
+`pg_cron`; job registration is represented by `cron.job`, and scheduler-run
+status is represented by `cron.job_run_details`. Hosted settings report server
+timezone `UTC` and `cron.timezone = GMT`, so the unchanged `7 * * * *` job
+fires at minute 7 of each UTC hour. This interpretation comes from both the
+current documentation and the live hosted settings, not an assumed local
+timezone.
+
+Genuine scheduler history now contains both kinds of wall-clock evidence:
+
+- run 430 started at `2026-08-14 18:07:00.159078+00`, ended at
+  `18:07:00.211371+00`, ran as `postgres`, returned one row, and succeeded in
+  52.293 ms with zero application account-days, accruals, components, or
+  posted interest;
+- run 431 started at `2026-08-14 19:07:00.218817+00`, ended at
+  `19:07:00.983731+00`, ran as `postgres`, returned one row, and succeeded in
+  764.914 ms. Correlated `SCHEDULER` application evidence examined 18 accounts,
+  processed 18 account-days for `2026-08-14`, created 18 accrual rows and 17
+  components, and posted 117 paise. The isolation station performed zero work.
+
+These records came from the registered pg_cron job and have matching
+`cron.job_run_details`; the prior functional and concurrency harnesses did not
+create them. Therefore actual hosted wall-clock execution and positive-work
+wall-clock execution are both **OBSERVED**. This does not replace the separate
+controlled fixture and immediate-rerun proof.
+
+The repository-controlled validation harness is
+`supabase/tests/remote/phase_2e_scheduler_interest_validation.py`. Its live
+preflight passes for exact project `pjjbjeqkktxnphavolvf`, Mumbai
+`ap-south-1`, 25 matching migrations, 30/30 enabled and forced RLS tables,
+zero raw financial mutation grants, zero service-role application table/RPC
+grants, exactly 11 authenticated public definer RPCs, Data API schemas
+`public` plus `graphql_public`, unexposed `app_private` and `cron`, the
+committed catalog verifier, and the one exact active cron row.
+
+The original prepared run `97BF246A5B8D` missed its controlled window without
+spending either approved call. Genuine pg_cron run 455 started at
+`2026-08-15 19:07:00.241704+00`, succeeded as `postgres`, and processed its
+target date exactly once. That target evidence has one accrual, one component,
+one 18-paise interest transaction, two balanced entries, one immutable audit,
+and the exact raw/carry values below. Subsequent natural daily runs increased
+the old account's total interest to 54 paise, so the old account was archived
+as natural evidence and was not reused for the controlled baseline.
+
+Replacement run `A0900425DE9C` **PASSED**. It was
+created through the normal authenticated customer/account and fuel-posting
+functions with no manual ledger insertion. The fixture has 36,501 paise of
+principal, a 100,000-paise limit, 18% (`0.18000000`) Actual/365 interest,
+zero grace days, `AFTER_GRACE_ONLY`, source/target business date `2026-08-18`,
+and began with zero interest, zero accrual/component/interest-ledger evidence,
+and 63,499 paise available credit. Exact NUMERIC expectation remains
+`36501 * 0.18000000 / 365 = 18.000493150684931507` paise, rounded cumulative
+posting 18 paise with closing carry `0.000493150684931507` paise.
+
+The replacement trusted posting occurred on the India-local 2026-08-18 date,
+which does not become completed until `2026-08-18 18:30:00+00`. The fail-closed
+execution window ends at `19:05:00+00`, two minutes before the first eligible
+natural `19:07` cron firing. Hosted preflight at `18:42:30.548525+00` confirmed
+India-local `2026-08-19 00:12:30.548525`, latest completed date `2026-08-18`,
+the empty fixture baseline, and no natural cron run after eligibility.
+
+The first approved direct call started at `18:42:43.535452+00`. It created one
+completed application run per active station with the 31-day catch-up bound
+and no remaining work. The primary station examined 20 accounts, processed 20
+account-days for exactly `2026-08-18`, created 20 accruals and 19 components,
+and posted 152 paise; the isolation station performed zero work. All 20
+accruals were in the run's organization, station, and completed-date scope.
+Nineteen positive accruals had exactly 19 linked ledger transactions and 19
+immutable audits; there were zero missing links or out-of-scope rows. The
+dedicated fixture appeared exactly once.
+
+For the fixture, the controlled call created exactly one daily component and
+one accrual from only the 36,501-paise fuel principal. The evidence records
+18.000493150684931507 raw paise, zero opening carry, 18 posted paise, and
+0.000493150684931507 closing carry. It created one posted 18-paise
+`INTEREST_CHARGE`, one 18-paise `CUSTOMER_INTEREST_RECEIVABLE` debit, one
+18-paise `INTEREST_INCOME` credit, and one `interest.accrued` audit. Principal
+remained 36,501 paise, available credit remained 63,499 paise, interest due
+became 18 paise, and total due became 36,519 paise.
+
+The second and final approved call started at `18:43:07.066649+00`. The primary
+station examined the same 20 accounts but processed zero account-days and
+created zero accruals, components, ledger transactions, audits, or posted
+interest; the isolation station also remained zero-work. The fixture retained
+exactly one accrual, component, interest transaction, two entries, one audit,
+and the same carry and balances. This is the required immediate idempotency
+proof. Multi-date catch-up was not manufactured because earlier functional
+evidence covered it; this run still verified the configured bound and
+`more_dates_pending = false`.
+
+Across the replacement fuel posting and every interest transaction created by
+the first controlled cycle, 20 transactions contain 40 positive entries and
+reconcile to 36,653 paise of debits and 36,653 paise of credits. Whole-project
+unbalanced transaction count is zero. The committed hosted verifier passed
+after both calls: 25 matching migrations, 30/30 enabled and forced RLS tables,
+zero raw financial mutation grants, zero service-role table/RPC grants, exactly
+11 authenticated public definer RPCs, hardened default ACLs, and unchanged
+Data API exposure (`public`, `graphql_public`). Normal roles still cannot
+execute the private engine or use the `cron` schema.
+
+Cron remained exactly one active job with the same name, `7 * * * *` schedule,
+command, `postgres` owner/database, and UTC/GMT settings. No cron mutation
+occurred. The 48 recent natural history rows were all `succeeded`, with zero
+failed, running, unknown, or stuck jobs; the latest pre-test natural run 526 at
+`18:07` was zero-work. Both controlled calls completed before the natural
+`19:07` boundary.
+
+The earlier concurrency post-run snapshot found 35 synthetic
+customers/accounts, 21 fuel sales, 14 repayments/allocations, 239 interest
+accruals/components, 280 ledger
 transactions with 560 entries, 35 completed and zero incomplete idempotency
 records, 9 correction requests, 19 correction events, 5 reversals, and 328
 audit events. The larger interest/audit totals include normal historical
@@ -473,7 +585,7 @@ state both contain the same 25 committed migrations.
 | Phase 2E migration preflight | PASS, 25 committed migrations; head `20260727213829` |
 | Hosted functional harness | PASS; syntax, exact target binding, ordinary-JWT actor matrix, sanitized evidence |
 | Hosted concurrency harness | PASS; run `E6C1546C6CCE`, four two-session races, exact reconciliation, sanitized ignored evidence |
-| Repository hygiene | PASS, 179 files inspected |
+| Repository hygiene | PASS, 180 files inspected |
 | `git diff --check` | PASS |
 
 ## Internal review result
@@ -516,11 +628,12 @@ SimpleLogger fallback warning; it did not affect compilation or tests.
 ## Known limitations
 
 No client, real-data migration, production project, production workflow,
-managed backup, PITR, recovery objective, manual scheduler invocation,
-controlled hosted scheduler/interest-cycle validation, load test,
+managed backup, PITR, recovery objective, manual scheduler invocation, load
+test,
 completed software-composition vulnerability report, GitHub development
 secrets/environment configuration, or independent professional
 security/financial review is part of the completed work to date. No real
 customer data exists in the development project; its application data is only
-the approved synthetic bootstrap, isolation fixture, and functional-smoke
-history. The excluded pre-existing Supabase project remains untouched.
+the approved synthetic bootstrap, isolation fixture, functional/concurrency
+smoke, and scheduler-validation history. The excluded pre-existing Supabase
+project remains untouched.
