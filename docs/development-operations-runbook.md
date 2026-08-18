@@ -41,6 +41,43 @@ A controlled TEST cycle requires explicit user approval and
 real wall-clock run. If no hourly run occurs during Phase 2E, record wall-clock
 execution as unverified.
 
+The separately approved Phase 2E scheduler gate uses
+`supabase/tests/remote/phase_2e_scheduler_interest_validation.py`. Its modes
+are intentionally split because the trusted fuel-posting function timestamps
+principal with the hosted clock, while the scheduler processes only completed
+station-local dates:
+
+1. `preflight` performs target, migration, catalog, Data API, security, cron,
+   and run-history inspection without creating a fixture or calling the cycle.
+2. `prepare` creates one uniquely marked fake account and low principal through
+   the normal authenticated database functions. It persists only sanitized,
+   credential-free recovery state under ignored `.local-state`.
+3. `execute` requires the explicit two-call approval sentinel, the exact linked
+   project, a zero-call `prepared` state, the next `Asia/Kolkata` date, and a
+   window before the first eligible natural cron firing. It calls the existing
+   `app_private.run_hourly_interest_accrual()` exactly once for controlled work
+   and once more for immediate idempotency evidence. It never calls a cron
+   scheduling function or modifies `cron.job`.
+4. `verify` is read-only. It can recover and inspect a prepared or completed
+   run without spending either controlled call.
+
+If a guarded window is missed and natural pg_cron consumes the prepared
+fixture, `rollover` requires its own exact approval sentinel. It first proves
+the target accrual correlates to a successful `cron.job_run_details` row,
+archives sanitized evidence, and only then prepares one uniquely identified
+replacement through the same trusted account and fuel-posting functions. It
+does not reuse the consumed account, edit financial history, or spend a
+controlled call.
+
+Do not bypass a timing refusal by backdating a ledger row, changing station or
+cron timezones, invoking a lower-level runner with a synthetic timestamp, or
+editing the ignored state. If a process stops after recording a call as
+started, treat commit state as uncertain and reconcile read-only before any
+new approval; the harness deliberately refuses an automatic retry. If a
+natural cron run reaches the fixture first, preserve that genuine wall-clock
+evidence and prepare a fresh controlled fixture only under the applicable
+approval.
+
 ## Correction failures
 
 Inspect pending request ID, type, version, station, and dependency result

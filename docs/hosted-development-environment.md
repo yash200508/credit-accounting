@@ -90,7 +90,10 @@ server-only key into process memory from the authenticated CLI and discard it.
 Repository controls, project creation/linking, deployment of all 25
 migrations, read-only hosted catalog/security verification, and the approved
 fake Auth/application bootstrap, hosted functional/authorization smoke, and
-four-race hosted concurrency smoke are complete. Local and remote migration
+four-race hosted concurrency smoke are complete. The controlled hosted
+scheduler/interest gate also passed with run `A0900425DE9C`: one exact
+interest cycle and one immediate zero-work rerun reconciled without changing
+cron. Local and remote migration
 histories match exactly, and the
 committed hosted verifier passes. The project contains the primary synthetic
 organization/Mumbai station, the approved minimal isolation organization and
@@ -104,10 +107,9 @@ replay, and one correction execution with a terminal replay. There were no
 deadlocks, timeouts, unknown commit states, infrastructure failures, or
 partial rows.
 
-The development project contains no real customer data. Formal controlled
-hosted scheduler/interest-cycle validation, hosted-origin backup/restore
-evidence, and GitHub development secrets/environment configuration remain
-behind separate approval gates. No production project exists within this
+The development project contains no real customer data. Hosted-origin
+backup/restore evidence and GitHub development secrets/environment
+configuration remain behind separate approval gates. No production project exists within this
 Phase 2E deployment scope, and the excluded pre-existing Supabase project
 remains untouched. Complete run-scoped and whole-project reconciliation,
 including retained interrupted synthetic attempts, is tracked in

@@ -170,3 +170,30 @@ domain errors while replacing the local Docker target with TLS `PG*`
 environment values. It is a four-scenario smoke, not a load test. Successful
 append-only records remain labeled development. Wall-clock scheduler execution
 is reported only if a real hosted cron run is observed.
+
+The controlled hosted scheduler harness is separate from both the functional
+TEST-cycle check and the four concurrency races. It first pins the Management
+API project, linked Supavisor target, migration history, Data API schemas,
+catalog verifier, normal-role grants, active-station set, exact cron row, and
+natural `cron.job_run_details` evidence. A dedicated fixture is then created
+only through the authenticated account and fuel-posting functions. Because the
+trusted posting timestamp cannot be backdated, execution is deferred until the
+source date becomes the latest completed `Asia/Kolkata` date and is refused if
+the natural cron job has already entered that date.
+
+If that window is missed, the guarded rollover path accepts the old fixture
+only when it still has zero controlled calls and its exact target-date run,
+accrual, component, ledger, audit, rounding, and carry evidence correlate to a
+successful natural pg_cron history row. The evidence is archived before one
+fresh trusted fixture is prepared. This recovery never rewrites or deletes the
+naturally created financial history.
+
+The approved execution has exactly two call sites for
+`app_private.run_hourly_interest_accrual()`: one controlled work call and one
+immediate idempotency call. The harness reconciles exact NUMERIC Actual/365
+interest, cumulative whole-paise rounding, fractional carry, policy and source
+lot links, run/accrual/component/audit counts, interest debit and income credit
+entries, unchanged principal and available credit, every gate-created balanced
+transaction, zero duplicate effect, and unchanged cron/security/catalog state.
+It writes credentials nowhere, stores only sanitized recovery evidence below
+ignored `.local-state`, and refuses automatic retry after an uncertain call.
